@@ -1,0 +1,217 @@
+import { apiRequest, fileRequest } from "./http";
+
+export const authApi = {
+  login: (payload) =>
+    apiRequest("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  register: (payload) =>
+    apiRequest("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  me: () => apiRequest("/api/auth/me"),
+  logout: () =>
+    apiRequest("/api/auth/logout", {
+      method: "POST"
+    })
+};
+
+export const activityApi = {
+  list: () => apiRequest("/api/activities"),
+  create: (payload) =>
+    apiRequest("/api/activities", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  register: (activityId) =>
+    apiRequest(`/api/activities/${activityId}/register`, {
+      method: "POST"
+    }),
+  myRegistrations: () => apiRequest("/api/activities/my-registrations"),
+  registrations: (activityId) => apiRequest(`/api/activities/${activityId}/registrations`),
+  checkIn: (activityId, userId) =>
+    apiRequest(`/api/activities/${activityId}/check-in/${userId}`, {
+      method: "POST"
+    }),
+  updateStatus: (activityId, status) =>
+    apiRequest(`/api/activities/${activityId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    })
+};
+
+export const userApi = {
+  ranking: () => apiRequest("/api/users/ranking"),
+  list: () => apiRequest("/api/users"),
+  updateRole: (userId, role) =>
+    apiRequest(`/api/users/${userId}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role })
+    })
+};
+
+export const announcementApi = {
+  list: () => apiRequest("/api/announcements"),
+  create: (payload) =>
+    apiRequest("/api/announcements", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })
+};
+
+export const notificationApi = {
+  my: () => apiRequest("/api/notifications/my"),
+  markRead: (id) =>
+    apiRequest(`/api/notifications/${id}/read`, {
+      method: "PATCH"
+    })
+};
+
+export const dashboardApi = {
+  stats: () => apiRequest("/api/dashboard/stats")
+};
+
+export const serviceRecordApi = {
+  my: () => apiRequest("/api/service-records/me"),
+  byUser: (userId) => apiRequest(`/api/service-records/user/${userId}`),
+  create: (payload) =>
+    apiRequest("/api/service-records", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })
+};
+
+export const contentApi = {
+  submit: (payload) =>
+    apiRequest("/api/contents", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  my: () => apiRequest("/api/contents/my"),
+  approved: () => apiRequest("/api/contents/approved"),
+  pending: () => apiRequest("/api/contents/pending"),
+  review: (contentId, payload) =>
+    apiRequest(`/api/contents/${contentId}/review`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    })
+};
+
+export const donationApi = {
+  donate: (payload) =>
+    apiRequest("/api/donations", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  my: () => apiRequest("/api/donations/my"),
+  all: () => apiRequest("/api/donations")
+};
+
+export const feedbackApi = {
+  submit: (payload) =>
+    apiRequest("/api/feedbacks", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  my: () => apiRequest("/api/feedbacks/my"),
+  all: () => apiRequest("/api/feedbacks"),
+  resolve: (id, payload) =>
+    apiRequest(`/api/feedbacks/${id}/resolve`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    })
+};
+
+export const auditApi = {
+  paged: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.action) {
+      query.set("action", params.action);
+    }
+    if (params.keyword) {
+      query.set("keyword", params.keyword);
+    }
+    if (params.operatorName) {
+      query.set("operatorName", params.operatorName);
+    }
+    if (params.targetType) {
+      query.set("targetType", params.targetType);
+    }
+    if (params.from) {
+      query.set("from", params.from);
+    }
+    if (params.to) {
+      query.set("to", params.to);
+    }
+    if (params.page) {
+      query.set("page", String(params.page));
+    }
+    if (params.size) {
+      query.set("size", String(params.size));
+    }
+    const suffix = query.toString();
+    return apiRequest(`/api/audit-logs/paged${suffix ? `?${suffix}` : ""}`);
+  },
+  list: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.action) {
+      query.set("action", params.action);
+    }
+    if (params.keyword) {
+      query.set("keyword", params.keyword);
+    }
+    if (params.operatorName) {
+      query.set("operatorName", params.operatorName);
+    }
+    if (params.targetType) {
+      query.set("targetType", params.targetType);
+    }
+    if (params.from) {
+      query.set("from", params.from);
+    }
+    if (params.to) {
+      query.set("to", params.to);
+    }
+    if (params.limit) {
+      query.set("limit", String(params.limit));
+    }
+    const suffix = query.toString();
+    return apiRequest(`/api/audit-logs${suffix ? `?${suffix}` : ""}`);
+  },
+  exportCsv: async (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.action) {
+      query.set("action", params.action);
+    }
+    if (params.keyword) {
+      query.set("keyword", params.keyword);
+    }
+    if (params.operatorName) {
+      query.set("operatorName", params.operatorName);
+    }
+    if (params.targetType) {
+      query.set("targetType", params.targetType);
+    }
+    if (params.from) {
+      query.set("from", params.from);
+    }
+    if (params.to) {
+      query.set("to", params.to);
+    }
+    if (params.limit) {
+      query.set("limit", String(params.limit));
+    }
+    const suffix = query.toString();
+    const blob = await fileRequest(`/api/audit-logs/export${suffix ? `?${suffix}` : ""}`);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "audit-logs.csv";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+};

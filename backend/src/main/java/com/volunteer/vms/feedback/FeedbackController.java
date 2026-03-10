@@ -1,0 +1,131 @@
+package com.volunteer.vms.feedback;
+
+import com.volunteer.vms.audit.AuditLogService;
+import com.volunteer.vms.common.ApiResponse;
+import com.volunteer.vms.common.AuthUtils;
+import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.notification.Notification;
+import com.volunteer.vms.notification.NotificationRepository;
+import com.volunteer.vms.user.Role;
+import com.volunteer.vms.user.User;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/feedbacks")
+public class FeedbackController {
+    private final FeedbackRepository feedbackRepository;
+    private final NotificationRepository notificationRepository;
+    private final AuditLogService auditLogService;
+
+    public FeedbackController(FeedbackRepository feedbackRepository,
+                              NotificationRepository notificationRepository,
+                              AuditLogService auditLogService) {
+        this.feedbackRepository = feedbackRepository;
+        this.notificationRepository = notificationRepository;
+        this.auditLogService = auditLogService;
+    }
+
+    @PostMapping
+    public ApiResponse<Void> submitFeedback(HttpServletRequest request,
+                                            @Valid @RequestBody SubmitFeedbackRequest submitRequest) {
+        User currentUser = AuthUtils.currentUser(request);
+        Feedback feedback = new Feedback();
+        feedback.setUserId(currentUser.getId());
+        feedback.setContent(submitRequest.content());
+        feedback.setStatus(FeedbackStatus.OPEN);
+        feedbackRepository.save(feedback);
+        return ApiResponse.success();
+    }
+
+    @GetMapping("/my")
+    public ApiResponse<List<FeedbackResponse>> myFeedback(HttpServletRequest request) {
+        User currentUser = AuthUtils.currentUser(request);
+        List<FeedbackResponse> data = feedbackRepository.findByUserIdOrderByCreatedAtDesc(currentUser.getId())
+                .stream()
+                .map(FeedbackResponse::from)
+                .toList();
+        return ApiResponse.success(data);
+    }
+
+    @GetMapping
+    public ApiResponse<List<FeedbackResponse>> allFeedback(HttpServletRequest request) {
+        User currentUser = AuthUtils.currentUser(request);
+        AuthUtils.requireRole(currentUser, Role.ADMIN, Role.ORGANIZER);
+        List<FeedbackResponse> data = feedbackRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(FeedbackResponse::from)
+                .toList();
+        return ApiResponse.success(data);
+    }
+
+    @PatchMapping("/{id}/resolve")
+    public ApiResponse<Void> resolve(HttpServletRequest request,
+                                     @PathVariable Long id,
+                                     @Valid @RequestBody ResolveFeedbackRequest resolveRequest) {
+        User currentUser = AuthUtils.currentUser(request);
+        AuthUtils.requireRole(currentUser, Role.ADMIN, Role.ORGANIZER);
+        Feedback feedback = feedbackRepository.findById(id)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "反馈不存在"));
+        feedback.setStatus(FeedbackStatus.RESOLVED);
+        feedback.setReply(resolveRequest.reply());
+        feedback.setResolvedAt(LocalDateTime.now());
+        feedbackRepository.save(feedback);
+
+        Notification notification = new Notification();
+        notification.setUserId(feedback.getUserId());
+        notification.setTitle("反馈已处理");
+        notification.setContent(resolveRequest.reply());
+        notificationRepository.save(notification);
+        auditLogService.log(
+                request,
+                currentUser,
+                "FEEDBACK_RESOLVED",
+                "FEEDBACK",
+                id,
+                "处理回复=" + resolveRequest.reply()
+        );
+        return ApiResponse.success();
+    }
+
+    public record SubmitFeedbackRequest(
+            @NotBlank(message = "反馈内容不能为空")
+            @Size(max = 1000, message = "反馈内容最多1000字")
+            String content
+    ) {
+    }
+
+    public record ResolveFeedbackRequest(
+            @NotBlank(message = "处理回复不能为空")
+            @Size(max = 1000, message = "处理回复最多1000字")
+            String reply
+    ) {
+    }
+
+    public record FeedbackResponse(Long id,
+                                   Long userId,
+                                   String content,
+                                   FeedbackStatus status,
+                                   String reply,
+                                   LocalDateTime createdAt,
+                                   LocalDateTime resolvedAt) {
+        static FeedbackResponse from(Feedback feedback) {
+            return new FeedbackResponse(
+                    feedback.getId(),
+                    feedback.getUserId(),
+                    feedback.getContent(),
+                    feedback.getStatus(),
+                    feedback.getReply(),
+                    feedback.getCreatedAt(),
+                    feedback.getResolvedAt()
+            );
+        }
+    }
+}
