@@ -1,162 +1,266 @@
-# 志愿者服务管理系统（后端 MVP）
+# 志愿者服务管理系统（可移植/可复现版）
 
-当前仓库已完成后端第一版骨架，技术栈：
+本项目是一个前后端分离系统，支持用户权限、活动管理、服务记录、内容审核、通知公告、捐赠、反馈、统计和审计日志。
 
-- Java 17
-- Spring Boot 3
-- Spring Data JPA
-- MySQL 8
-- Vue 3 + Vite
+## 1. 技术架构
 
-## 1. 目录结构
+- 后端：Java 17 + Spring Boot 3.2 + Spring Data JPA + MySQL 8
+- 前端：Vue 3 + Vite
+- 部署形态：单机部署（Windows PC 可直接作为服务端）
+
+## 2. 目录说明
 
 ```text
-backend/
-  src/main/java/com/volunteer/vms/
-    auth/            登录注册、会话拦截
-    user/            用户与角色、排行榜
-    activity/        活动发布、报名、签到
-    service/         服务记录与积分
-    content/         内容发布与审核
-    announcement/    公告
-    notification/    通知
-    donation/        捐赠
-    feedback/        反馈
-    dashboard/       统计看板
-    audit/           操作审计日志
+softwareEngineer/
+  backend/                  后端工程（Maven）
+    src/main/java/...       业务代码
+    src/main/resources/...  配置与SQL脚本
+    pom.xml
+  frontend/                 前端工程（Node + Vite）
+    src/...                 页面与路由
+    package.json
+    package-lock.json
+  README.md
 ```
 
-## 2. 启动前准备
+说明：
 
-1. 启动 MySQL，创建数据库（任选一种）：
-1. 使用脚本：[backend/src/main/resources/sql/init.sql](/d:/Documents/WorkSpace/Projects/softwareEngineer/backend/src/main/resources/sql/init.sql)
-1. 或先手工执行：
+- 根目录的 [package.json](/d:/Documents/WorkSpace/Projects/softwareEngineer/package.json) 与 [package-lock.json](/d:/Documents/WorkSpace/Projects/softwareEngineer/package-lock.json) 不参与前端构建，前端实际依赖以 `frontend/` 目录为准。
+
+## 3. 环境需求（推荐版本）
+
+1. 操作系统：Windows 10/11（Linux/macOS 也可，用等价命令）
+2. JDK：17（必须）
+3. Maven：3.9.x
+4. Node.js：20 LTS（推荐 20.x）
+5. npm：随 Node.js 安装（推荐 10.x）
+6. MySQL：8.0+（建议 8.4.x）
+7. 可选工具：Git、IDEA、VS Code、Postman/Apifox
+
+端口约定：
+
+1. 后端：`8080`
+2. 前端开发服务：`5173`
+3. 前端预览服务：`4173`
+4. MySQL：`3306`
+
+## 4. 第一次构建（从零）
+
+### 4.1 配置数据库
+
+在 MySQL 中执行：
 
 ```sql
-CREATE DATABASE volunteer_service DEFAULT CHARACTER SET utf8mb4;
+CREATE DATABASE IF NOT EXISTS volunteer_service DEFAULT CHARACTER SET utf8mb4;
 ```
 
-Windows 的 `mysql` 命令行执行 `SOURCE` 时，路径请用正斜杠：
+或执行项目脚本：
 
 ```sql
 SOURCE D:/Documents/WorkSpace/Projects/softwareEngineer/backend/src/main/resources/sql/init.sql;
 ```
 
-2. 修改配置文件中的数据库账号密码：
+### 4.2 修改后端配置
 
-[backend/src/main/resources/application.yml](/d:/Documents/WorkSpace/Projects/softwareEngineer/backend/src/main/resources/application.yml)
-
-默认值为：
+编辑 [application.yml](/d:/Documents/WorkSpace/Projects/softwareEngineer/backend/src/main/resources/application.yml)：
 
 ```yaml
 spring:
   datasource:
     username: root
-    password: root
+    password: 你的密码
 ```
 
-## 3. 启动后端
-
-在项目根目录执行：
+### 4.3 启动后端
 
 ```powershell
-cd backend
+cd D:\Documents\WorkSpace\Projects\softwareEngineer\backend
 mvn clean spring-boot:run
 ```
 
-启动后地址：
+后端地址：
 
-- API 基础地址：`http://localhost:8080/api`
-- 已配置监听地址：`0.0.0.0`（局域网可访问）
+- `http://localhost:8080/api`
 
-## 4. 启动前端
-
-在项目根目录执行：
+### 4.4 启动前端
 
 ```powershell
-cd frontend
+cd D:\Documents\WorkSpace\Projects\softwareEngineer\frontend
 npm install
 npm run dev
 ```
 
-前端访问地址：
+前端地址：
 
 - `http://localhost:5173`
-- 前端开发服务已绑定：`0.0.0.0`
 
-## 5. 默认初始化账号
+## 5. 默认账号
 
-系统首次启动会自动创建：
+后端首次启动会自动创建：
 
-- 管理员：`admin / admin123`
-- 组织方：`organizer / organizer123`
+1. 管理员：`admin / admin123`
+2. 组织方：`organizer / organizer123`
 
-普通志愿者可通过 `/api/auth/register` 注册。
+普通志愿者可在前端注册。
 
-## 6. 鉴权方式
+## 6. 构建产物（用于发布/验收）
 
-1. 登录：`POST /api/auth/login`
-2. 从响应里拿到 `token`
-3. 请求头携带：
+### 6.1 后端打包
 
-```text
-Authorization: Bearer <token>
+```powershell
+cd D:\Documents\WorkSpace\Projects\softwareEngineer\backend
+mvn clean package -DskipTests
 ```
 
-## 7. 已实现模块（对应需求文档）
+产物：
 
-1. 用户与权限管理：注册、登录、角色修改、积分排行
-2. 志愿活动管理：活动发布、活动列表、报名、签到、状态变更
-3. 志愿服务记录：登记服务时长、个人记录查询
-4. 评价与激励：服务记录自动积分、排行榜
-5. 内容发布与审核：投稿、待审核列表、审核通过/驳回
-6. 公告与通知：公告发布、个人/系统通知、已读标记
-7. 捐赠与支持：捐赠记录提交、管理端汇总
-8. 统计分析：管理看板统计接口
-9. 互动反馈：反馈提交、处理回复、反馈结果通知
-10. 操作审计：记录角色变更、活动状态变更、签到、审核等关键动作
+- `backend\target\volunteer-service-backend-0.0.1-SNAPSHOT.jar`
 
-## 8. 快速接口测试
+启动 jar：
 
-可直接用 IDEA/VS Code 的 HTTP Client 打开：
+```powershell
+java -jar target\volunteer-service-backend-0.0.1-SNAPSHOT.jar
+```
 
-[backend/api-demo.http](/d:/Documents/WorkSpace/Projects/softwareEngineer/backend/api-demo.http)
+### 6.2 前端打包
 
-## 9. 前端当前页面
+```powershell
+cd D:\Documents\WorkSpace\Projects\softwareEngineer\frontend
+npm run build
+```
 
-1. 登录与注册
-2. 活动列表、活动发布、活动报名
-3. 活动执行管理（状态更新、报名名单、签到）
-4. 我的报名
-5. 服务记录（个人记录、管理端登记）
-6. 内容发布与审核（投稿、待审核处理）
-7. 捐赠管理（个人捐赠、管理端总览）
-8. 反馈管理（提交反馈、管理端处理）
-9. 公告发布与公告列表
-10. 消息通知与已读
-11. 志愿者积分排行榜
-12. 管理看板统计
-13. 管理员用户管理（用户列表、角色调整）
-14. 审计日志（按动作/关键字/操作人/目标类型/时间范围筛选 + 分页）
-15. 审计日志导出（CSV）
+产物：
 
-## 10. 下一步建议
+- `frontend\dist\`
 
-1. 增加文件上传（活动图片、服务证明）。
-2. 为审计日志增加多条件保存（常用筛选方案一键复用）。
-3. 将会话从内存 token 升级为 JWT + Redis（可选）。
+本地预览：
 
-## 11. 局域网访问方式
+```powershell
+npm run preview
+```
 
-1. 在部署机器上查看本机 IP：
+## 7. 如何复现（给别人测试）
+
+目标：在另一台电脑上拿到压缩包后，按文档可直接跑通。
+
+### 7.1 建议打包内容（轻量）
+
+打包这些目录/文件：
+
+1. `backend/src`
+2. `backend/pom.xml`
+3. `frontend/src`
+4. `frontend/package.json`
+5. `frontend/package-lock.json`
+6. `frontend/index.html`
+7. `frontend/vite.config.js`
+8. `README.md`
+
+建议不要打包（可减少体积）：
+
+1. `.git/`
+2. `backend/target/`
+3. `frontend/node_modules/`
+4. `frontend/dist/`
+
+### 7.2 目标机器复现步骤
+
+1. 安装第 3 节的软件环境
+2. 解压项目到任意目录（例如 `D:\Test\softwareEngineer`）
+3. 配置并启动 MySQL，创建数据库 `volunteer_service`
+4. 修改 `backend/src/main/resources/application.yml` 的数据库密码
+5. 启动后端：`cd backend && mvn spring-boot:run`
+6. 安装前端依赖并启动：`cd frontend && npm install && npm run dev`
+7. 浏览器访问：`http://localhost:5173`
+
+### 7.3 离线复现（无外网）
+
+如果目标机器无法联网：
+
+1. 需要在打包时额外包含 `frontend/node_modules/`
+2. 后端 Maven 依赖建议提前在目标机本地仓库准备，或一并迁移 `%USERPROFILE%\.m2\repository`（体积较大）
+
+## 8. 如何移植到局域网访问
+
+本项目已配置监听 `0.0.0.0`，支持局域网访问。
+
+### 8.1 查询本机 IP
 
 ```powershell
 ipconfig
 ```
 
-2. 假设本机 IP 是 `192.168.1.23`，局域网其他设备可访问：
+假设本机 IP 为 `192.168.1.23`，其他设备可访问：
 
-- 前端：`http://192.168.1.23:5173`
-- 后端 API：`http://192.168.1.23:8080/api`
+1. 前端：`http://192.168.1.23:5173`
+2. 后端：`http://192.168.1.23:8080/api`
 
-3. Windows 防火墙需放行端口 `5173` 与 `8080`，否则局域网设备无法连通。
+### 8.2 防火墙端口
+
+放行：
+
+1. `5173`（前端）
+2. `8080`（后端）
+3. `3306`（如果需要远程连数据库）
+
+## 9. 启停服务顺序（适合个人 PC）
+
+### 启动顺序
+
+1. MySQL
+2. 后端
+3. 前端
+
+### 停止顺序
+
+1. 前端（终端 `Ctrl + C`）
+2. 后端（终端 `Ctrl + C`）
+3. MySQL（可选）
+
+MySQL 服务控制（管理员 PowerShell，服务名按你机器实际为准）：
+
+```powershell
+Start-Service -Name MySQL80
+Stop-Service -Name MySQL80
+```
+
+## 10. 一致性验证命令（复现实验推荐）
+
+后端：
+
+```powershell
+cd backend
+mvn -q test
+```
+
+前端：
+
+```powershell
+cd frontend
+npm run build
+```
+
+若两条命令都成功，说明当前代码在该机器可正常构建。
+
+## 11. 已实现模块清单
+
+1. 用户与权限管理
+2. 志愿活动管理
+3. 服务记录与积分
+4. 内容发布与审核
+5. 公告与通知
+6. 捐赠管理
+7. 反馈处理
+8. 统计看板
+9. 审计日志（多条件筛选、分页、CSV 导出）
+
+## 12. 常见问题
+
+1. `Unknown database 'volunteer_service'`：
+先建库，或检查 `application.yml` 账号密码是否正确。
+2. MySQL `SOURCE` 报 `Unknown command '\D'`：
+Windows 下路径改用 `/`，不要用 `\`。
+3. 局域网访问不到：
+优先检查防火墙和端口占用。
+4. 前端依赖安装慢：
+可配置 npm 镜像或使用你已迁移的 Node 配置。
