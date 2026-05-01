@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * 核心实体：对应 SRS FR-06 中的志愿成果投稿与审核留痕。
+ */
 @Entity
 @Table(name = "content_posts")
 public class ContentPost {

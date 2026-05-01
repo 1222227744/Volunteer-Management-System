@@ -23,8 +23,8 @@
             <label>报名志愿者</label>
             <select v-model="recordForm.userId" @change="onUserChange">
               <option value="">请选择志愿者</option>
-              <option v-for="person in registrations" :key="person.registrationId" :value="person.userId">
-                {{ person.userDisplayName }}（ID: {{ person.userId }} / {{ person.status }}）
+              <option v-for="person in eligibleRegistrations" :key="person.registrationId" :value="person.userId">
+                {{ person.userDisplayName }}（ID: {{ person.userId }} / {{ formatRegistrationStatus(person.status) }}）
               </option>
             </select>
           </div>
@@ -91,7 +91,9 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { activityApi, serviceRecordApi } from "../api";
 import { authState } from "../stores/auth";
+import { formatRegistrationStatus } from "../utils/labels";
 
+// 展示层：对应 SRS FR-04 服务记录与 FR-05 积分激励的课程版实现页面。
 const message = ref("");
 const messageType = ref("success");
 const submitting = ref(false);
@@ -121,6 +123,10 @@ const manageableActivities = computed(() => {
   }
   return activities.value.filter((item) => item.organizerId === authState.user?.id);
 });
+
+const eligibleRegistrations = computed(() =>
+  registrations.value.filter((item) => item.status === "CHECKED_OUT" || item.status === "COMPLETED")
+);
 
 function formatDate(raw) {
   if (!raw) return "-";

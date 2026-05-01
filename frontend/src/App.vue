@@ -46,7 +46,7 @@ import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
 import { authApi } from "./api";
 import { setUnauthorizedHandler } from "./api/http";
-import { authState, clearAuth, isLoggedIn } from "./stores/auth";
+import { authState, clearAuth, isLoggedIn, setAuth } from "./stores/auth";
 
 const router = useRouter();
 
@@ -69,11 +69,9 @@ async function bootstrapMe() {
   if (!isLoggedIn()) {
     return;
   }
-  if (authState.user) {
-    return;
-  }
   try {
-    authState.user = await authApi.me();
+    const user = await authApi.me();
+    setAuth(authState.token, user);
   } catch {
     clearAuth();
     router.push("/login");

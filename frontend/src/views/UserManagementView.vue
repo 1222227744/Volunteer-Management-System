@@ -38,9 +38,9 @@
               <strong>角色</strong>
               <div class="stack" style="margin-top: 6px;">
                 <select v-model="roles[user.userId]">
-                  <option value="VOLUNTEER">VOLUNTEER</option>
-                  <option value="ORGANIZER">ORGANIZER</option>
-                  <option value="ADMIN">ADMIN</option>
+                  <option value="VOLUNTEER">{{ formatRole("VOLUNTEER") }}</option>
+                  <option value="ORGANIZER">{{ formatRole("ORGANIZER") }}</option>
+                  <option value="ADMIN">{{ formatRole("ADMIN") }}</option>
                 </select>
                 <button
                   class="btn primary"
@@ -50,6 +50,7 @@
                   保存角色
                 </button>
               </div>
+              <p class="muted" style="margin-top: 6px;">当前角色：{{ formatRole(user.role) }}</p>
               <small class="muted" v-if="String(user.userId) === String(authState.user?.id)">
                 当前登录管理员不允许在此页面修改自己的角色
               </small>
@@ -66,6 +67,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { userApi } from "../api";
 import { authState } from "../stores/auth";
+import { formatRole } from "../utils/labels";
 
 const users = ref([]);
 const roles = reactive({});

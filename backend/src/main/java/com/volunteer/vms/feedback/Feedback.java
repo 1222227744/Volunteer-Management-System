@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * 核心实体：对应 SRS FR-08 中的意见反馈与处理回执。
+ */
 @Entity
 @Table(name = "feedbacks")
 public class Feedback {

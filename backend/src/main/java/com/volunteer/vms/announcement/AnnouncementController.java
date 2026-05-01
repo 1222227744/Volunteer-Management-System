@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 接口层：实现 SRS FR-06 中的公告发布与广播通知。
+ */
 @RestController
 @RequestMapping("/api/announcements")
 public class AnnouncementController {

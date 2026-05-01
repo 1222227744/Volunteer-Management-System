@@ -89,6 +89,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { contentApi } from "../api";
 import { authState } from "../stores/auth";
 
+// 展示层：对应 SRS FR-06 内容投稿、审核和成果展示。
 const myContents = ref([]);
 const approvedContents = ref([]);
 const pendingContents = ref([]);

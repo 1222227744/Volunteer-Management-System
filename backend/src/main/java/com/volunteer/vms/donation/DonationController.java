@@ -16,6 +16,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 接口层：实现 SRS FR-07 捐赠与支持管理。
+ * 支付结果回调在课程版本中以直接写入捐赠记录的方式模拟。
+ */
 @RestController
 @RequestMapping("/api/donations")
 public class DonationController {

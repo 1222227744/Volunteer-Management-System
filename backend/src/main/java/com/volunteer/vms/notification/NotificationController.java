@@ -12,6 +12,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 接口层：实现 SRS FR-06 的消息通知读取与回执查看。
+ */
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {

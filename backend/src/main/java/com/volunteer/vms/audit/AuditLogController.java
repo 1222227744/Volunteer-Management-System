@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * 接口层：支撑 SRS FR-01、FR-06、FR-08 中提到的关键操作留痕与审计查询。
+ */
 @RestController
 @RequestMapping("/api/audit-logs")
 public class AuditLogController {

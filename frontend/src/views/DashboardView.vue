@@ -52,6 +52,7 @@ import { computed, onMounted, ref } from "vue";
 import { dashboardApi } from "../api";
 import { authState } from "../stores/auth";
 
+// 展示层：对应 SRS FR-08 统计分析看板。
 const stats = ref({});
 const error = ref("");
 

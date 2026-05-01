@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 接口层：实现 SRS FR-06 内容发布、审核与展示。
+ * 公告和通知能力由公告模块、通知模块分别承接。
+ */
 @RestController
 @RequestMapping("/api/contents")
 public class ContentController {

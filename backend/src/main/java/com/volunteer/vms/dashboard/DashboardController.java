@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/**
+ * 接口层：实现 SRS FR-08 统计分析与后台治理视图的数据聚合出口。
+ */
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {

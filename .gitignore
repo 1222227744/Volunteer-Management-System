@@ -18,3 +18,8 @@ Thumbs.db
 # Node
 node_modules/
 dist/
+
+# Local env
+.env
+backend/.env
+frontend/.env

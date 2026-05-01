@@ -31,8 +31,17 @@ export const activityApi = {
     }),
   myRegistrations: () => apiRequest("/api/activities/my-registrations"),
   registrations: (activityId) => apiRequest(`/api/activities/${activityId}/registrations`),
+  reviewRegistration: (activityId, userId, status) =>
+    apiRequest(`/api/activities/${activityId}/registrations/${userId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status })
+    }),
   checkIn: (activityId, userId) =>
     apiRequest(`/api/activities/${activityId}/check-in/${userId}`, {
+      method: "POST"
+    }),
+  checkOut: (activityId, userId) =>
+    apiRequest(`/api/activities/${activityId}/check-out/${userId}`, {
       method: "POST"
     }),
   updateStatus: (activityId, status) =>

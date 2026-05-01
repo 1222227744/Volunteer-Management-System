@@ -12,6 +12,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * 接口层：实现 SRS FR-01 权限管理与 FR-05 激励排行展示。
+ * 其中排行基于累计积分，属于课程版“评价与激励”简化实现。
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -26,7 +30,9 @@ public class UserController {
     @GetMapping("/ranking")
     public ApiResponse<List<UserRankingResponse>> ranking() {
         List<UserRankingResponse> rankings = userRepository.findTop20ByOrderByPointsDescCreatedAtAsc().stream()
+                .filter(user -> user.getRole() == Role.VOLUNTEER)
                 .map(user -> new UserRankingResponse(user.getId(), user.getDisplayName(), user.getPoints()))
+                .limit(20)
                 .toList();
         return ApiResponse.success(rankings);
     }

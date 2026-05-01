@@ -73,6 +73,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { feedbackApi } from "../api";
 import { authState } from "../stores/auth";
 
+// 展示层：对应 SRS FR-08 互动反馈闭环。
 const feedbackContent = ref("");
 const submitting = ref(false);
 const message = ref("");

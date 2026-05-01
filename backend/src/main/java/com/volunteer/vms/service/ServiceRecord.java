@@ -5,6 +5,10 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 核心实体：对应 SRS FR-04 的服务记录沉淀结果。
+ * 同时作为 FR-05 积分排行的基础数据来源之一。
+ */
 @Entity
 @Table(name = "service_records")
 public class ServiceRecord {

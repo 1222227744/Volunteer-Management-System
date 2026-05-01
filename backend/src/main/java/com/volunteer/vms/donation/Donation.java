@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 核心实体：对应 SRS FR-07 的捐赠与支持记录。
+ */
 @Entity
 @Table(name = "donations")
 public class Donation {

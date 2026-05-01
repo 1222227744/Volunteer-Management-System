@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * 核心实体：对应 SRS FR-02 的志愿活动主数据。
+ * 它是活动发布、查询、状态流转和容量控制的基础载体。
+ */
 @Entity
 @Table(name = "activities")
 public class Activity {

@@ -38,8 +38,8 @@ const router = useRouter();
 const loading = ref(false);
 const error = ref("");
 const form = reactive({
-  username: "admin",
-  password: "admin123"
+  username: "",
+  password: ""
 });
 
 async function submit() {

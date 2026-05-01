@@ -35,9 +35,9 @@
           <div class="field">
             <label>状态</label>
             <select v-model="createForm.status">
-              <option value="PUBLISHED">PUBLISHED</option>
-              <option value="ONGOING">ONGOING</option>
-              <option value="DRAFT">DRAFT</option>
+              <option value="PUBLISHED">{{ formatActivityStatus("PUBLISHED") }}</option>
+              <option value="ONGOING">{{ formatActivityStatus("ONGOING") }}</option>
+              <option value="DRAFT">{{ formatActivityStatus("DRAFT") }}</option>
             </select>
           </div>
         </div>
@@ -58,7 +58,7 @@
         <article v-for="activity in activities" :key="activity.id" class="card">
           <div class="stack" style="justify-content: space-between;">
             <h3>{{ activity.title }}</h3>
-            <span class="tag">{{ activity.status }}</span>
+            <span class="tag">{{ formatActivityStatus(activity.status) }}</span>
           </div>
           <p class="muted">{{ activity.description }}</p>
           <div class="grid three">
@@ -90,7 +90,9 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { activityApi } from "../api";
 import { authState } from "../stores/auth";
+import { formatActivityStatus } from "../utils/labels";
 
+// 展示层：对应 SRS FR-02 活动发布与查询，并作为 FR-03 报名申请入口。
 const activities = ref([]);
 const creating = ref(false);
 const message = ref("");

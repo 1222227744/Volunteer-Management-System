@@ -9,6 +9,7 @@ import com.volunteer.vms.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,6 +17,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+/**
+ * 接口层：实现 FR-01 用户注册、登录、登出与当前登录用户查询。
+ * 对应《系统设计说明书》中的接口层，由控制器接收请求并调用认证基础设施。
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -79,7 +84,7 @@ public class AuthController {
             @Size(min = 3, max = 30, message = "用户名长度应为3-30")
             String username,
             @NotBlank(message = "密码不能为空")
-            @Size(min = 6, max = 64, message = "密码长度应为6-64")
+            @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).{8,64}$", message = "密码至少8位且需同时包含字母和数字")
             String password,
             @NotBlank(message = "昵称不能为空")
             @Size(max = 50, message = "昵称最多50个字符")

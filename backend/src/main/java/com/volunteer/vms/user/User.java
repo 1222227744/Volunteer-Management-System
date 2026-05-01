@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * 核心实体：对应 SRS FR-01 用户与权限管理，以及 FR-05 积分激励的用户账户数据。
+ */
 @Entity
 @Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(name = "uk_users_username", columnNames = "username")

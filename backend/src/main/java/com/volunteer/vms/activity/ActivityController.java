@@ -24,12 +24,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 接口层：覆盖 SRS 中的 FR-02 志愿活动发布与查询、FR-03 活动报名与审核、
+ * FR-04 签到签退流程。
+ * 当前控制器仍承担了部分流程编排，和《系统设计说明书》里的说明一致，
+ * 后续可继续将流程下沉到应用层服务。
+ */
 @RestController
 @RequestMapping("/api/activities")
 public class ActivityController {
     private static final Set<RegistrationStatus> OCCUPIED_STATUSES = EnumSet.of(
-            RegistrationStatus.REGISTERED,
+            RegistrationStatus.APPROVED,
             RegistrationStatus.CHECKED_IN,
+            RegistrationStatus.CHECKED_OUT,
             RegistrationStatus.COMPLETED
     );
 
@@ -106,8 +113,16 @@ public class ActivityController {
         ActivityRegistration registration = new ActivityRegistration();
         registration.setActivityId(activityId);
         registration.setUserId(currentUser.getId());
-        registration.setStatus(RegistrationStatus.REGISTERED);
+        registration.setStatus(RegistrationStatus.PENDING);
         registrationRepository.save(registration);
+        auditLogService.log(
+                request,
+                currentUser,
+                "ACTIVITY_REGISTERED",
+                "ACTIVITY_REGISTRATION",
+                registration.getId(),
+                "活动ID=" + activityId + " 提交报名申请，等待审核"
+        );
         return ApiResponse.success();
     }
 
@@ -144,10 +159,50 @@ public class ActivityController {
                         userNameMap.getOrDefault(item.getUserId(), "未知用户"),
                         item.getStatus(),
                         item.getRegisteredAt(),
-                        item.getCheckInAt()
+                        item.getCheckInAt(),
+                        item.getCheckOutAt()
                 ))
                 .toList();
         return ApiResponse.success(result);
+    }
+
+    @PatchMapping("/{activityId}/registrations/{userId}/status")
+    @Transactional
+    public ApiResponse<Void> reviewRegistration(HttpServletRequest request,
+                                                @PathVariable Long activityId,
+                                                @PathVariable Long userId,
+                                                @Valid @RequestBody UpdateRegistrationStatusRequest statusRequest) {
+        User currentUser = AuthUtils.currentUser(request);
+        AuthUtils.requireRole(currentUser, Role.ORGANIZER, Role.ADMIN);
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "活动不存在"));
+        ensureCanManageActivity(currentUser, activity);
+        if (statusRequest.status() != RegistrationStatus.APPROVED
+                && statusRequest.status() != RegistrationStatus.REJECTED
+                && statusRequest.status() != RegistrationStatus.CANCELLED) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "报名审核只允许设置为 APPROVED、REJECTED 或 CANCELLED");
+        }
+        ActivityRegistration registration = registrationRepository.findByActivityIdAndUserId(activityId, userId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "该用户未报名活动"));
+        if (registration.getStatus() != RegistrationStatus.PENDING
+                && registration.getStatus() != RegistrationStatus.APPROVED) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "当前报名状态不允许再次审核");
+        }
+        registration.setStatus(statusRequest.status());
+        if (statusRequest.status() != RegistrationStatus.APPROVED) {
+            registration.setCheckInAt(null);
+            registration.setCheckOutAt(null);
+        }
+        registrationRepository.save(registration);
+        auditLogService.log(
+                request,
+                currentUser,
+                "ACTIVITY_REGISTRATION_REVIEWED",
+                "ACTIVITY_REGISTRATION",
+                registration.getId(),
+                "活动ID=" + activityId + ", 用户ID=" + userId + ", 审核结果=" + statusRequest.status()
+        );
+        return ApiResponse.success();
     }
 
     @PostMapping("/{activityId}/check-in/{userId}")
@@ -162,6 +217,9 @@ public class ActivityController {
         ensureCanManageActivity(currentUser, activity);
         ActivityRegistration registration = registrationRepository.findByActivityIdAndUserId(activityId, userId)
                 .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "该用户未报名活动"));
+        if (registration.getStatus() != RegistrationStatus.APPROVED) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "只有审核通过的报名才能签到");
+        }
         registration.setStatus(RegistrationStatus.CHECKED_IN);
         registration.setCheckInAt(LocalDateTime.now());
         registrationRepository.save(registration);
@@ -172,6 +230,35 @@ public class ActivityController {
                 "ACTIVITY_REGISTRATION",
                 registration.getId(),
                 "活动ID=" + activityId + ", 用户ID=" + userId + " 已签到"
+        );
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/{activityId}/check-out/{userId}")
+    @Transactional
+    public ApiResponse<Void> checkOut(HttpServletRequest request,
+                                      @PathVariable Long activityId,
+                                      @PathVariable Long userId) {
+        User currentUser = AuthUtils.currentUser(request);
+        AuthUtils.requireRole(currentUser, Role.ORGANIZER, Role.ADMIN);
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "活动不存在"));
+        ensureCanManageActivity(currentUser, activity);
+        ActivityRegistration registration = registrationRepository.findByActivityIdAndUserId(activityId, userId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "该用户未报名活动"));
+        if (registration.getStatus() != RegistrationStatus.CHECKED_IN || registration.getCheckInAt() == null) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "只有已签到的报名才能签退");
+        }
+        registration.setStatus(RegistrationStatus.CHECKED_OUT);
+        registration.setCheckOutAt(LocalDateTime.now());
+        registrationRepository.save(registration);
+        auditLogService.log(
+                request,
+                currentUser,
+                "ACTIVITY_CHECKOUT",
+                "ACTIVITY_REGISTRATION",
+                registration.getId(),
+                "活动ID=" + activityId + ", 用户ID=" + userId + " 已签退"
         );
         return ApiResponse.success();
     }
@@ -232,6 +319,12 @@ public class ActivityController {
     public record UpdateStatusRequest(@NotNull(message = "状态不能为空") ActivityStatus status) {
     }
 
+    public record UpdateRegistrationStatusRequest(
+            @NotNull(message = "报名状态不能为空")
+            RegistrationStatus status
+    ) {
+    }
+
     public record ActivityResponse(Long id,
                                    String title,
                                    String description,
@@ -265,7 +358,8 @@ public class ActivityController {
                                          LocalDateTime endTime,
                                          RegistrationStatus status,
                                          LocalDateTime registeredAt,
-                                         LocalDateTime checkInAt) {
+                                         LocalDateTime checkInAt,
+                                         LocalDateTime checkOutAt) {
         static MyRegistrationResponse from(ActivityRegistration registration, Activity activity) {
             String title = activity == null ? "未知活动" : activity.getTitle();
             LocalDateTime start = activity == null ? null : activity.getStartTime();
@@ -278,7 +372,8 @@ public class ActivityController {
                     end,
                     registration.getStatus(),
                     registration.getRegisteredAt(),
-                    registration.getCheckInAt()
+                    registration.getCheckInAt(),
+                    registration.getCheckOutAt()
             );
         }
     }
@@ -288,6 +383,7 @@ public class ActivityController {
                                                String userDisplayName,
                                                RegistrationStatus status,
                                                LocalDateTime registeredAt,
-                                               LocalDateTime checkInAt) {
+                                               LocalDateTime checkInAt,
+                                               LocalDateTime checkOutAt) {
     }
 }

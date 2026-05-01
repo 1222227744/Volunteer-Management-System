@@ -1,5 +1,8 @@
+@baseUrl = http://127.0.0.1:8080
+@token =
+
 ### 1) 管理员登录
-POST http://localhost:8080/api/auth/login
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
@@ -8,7 +11,7 @@ Content-Type: application/json
 }
 
 ### 2) 志愿者注册
-POST http://localhost:8080/api/auth/register
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
@@ -18,7 +21,7 @@ Content-Type: application/json
 }
 
 ### 3) 创建活动（将 {{token}} 替换为登录返回token）
-POST http://localhost:8080/api/activities
+POST {{baseUrl}}/api/activities
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -33,5 +36,5 @@ Content-Type: application/json
 }
 
 ### 4) 查询活动列表
-GET http://localhost:8080/api/activities
+GET {{baseUrl}}/api/activities
 Authorization: Bearer {{token}}

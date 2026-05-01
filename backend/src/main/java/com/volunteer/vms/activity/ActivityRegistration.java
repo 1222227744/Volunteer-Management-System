@@ -4,6 +4,10 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * 领域实体：对应 SRS 的 FR-03 活动报名与审核、FR-04 签到签退流程。
+ * 通过状态字段记录报名申请、审核、签到、签退和完成留痕。
+ */
 @Entity
 @Table(name = "activity_registrations", uniqueConstraints = {
         @UniqueConstraint(name = "uk_registration_activity_user", columnNames = {"activity_id", "user_id"})
@@ -28,10 +32,12 @@ public class ActivityRegistration {
 
     private LocalDateTime checkInAt;
 
+    private LocalDateTime checkOutAt;
+
     @PrePersist
     public void prePersist() {
         if (status == null) {
-            status = RegistrationStatus.REGISTERED;
+            status = RegistrationStatus.PENDING;
         }
         if (registeredAt == null) {
             registeredAt = LocalDateTime.now();
@@ -84,5 +90,13 @@ public class ActivityRegistration {
 
     public void setCheckInAt(LocalDateTime checkInAt) {
         this.checkInAt = checkInAt;
+    }
+
+    public LocalDateTime getCheckOutAt() {
+        return checkOutAt;
+    }
+
+    public void setCheckOutAt(LocalDateTime checkOutAt) {
+        this.checkOutAt = checkOutAt;
     }
 }

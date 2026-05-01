@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { authState, isLoggedIn } from "../stores/auth";
 
+// 展示层路由入口：按 SRS 的 FR-01 ~ FR-08 将页面入口映射到具体业务视图。
 const routes = [
   {
     path: "/login",

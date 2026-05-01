@@ -30,6 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * 接口层：实现 SRS FR-04 服务记录沉淀，以及 FR-05 积分激励的基础规则。
+ * 当前以“登记服务记录后发放积分”的课程版规则替代更复杂的评优算法。
+ */
 @RestController
 @RequestMapping("/api/service-records")
 public class ServiceRecordController {
@@ -66,6 +70,9 @@ public class ServiceRecordController {
                 .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "志愿者不存在"));
         ActivityRegistration registration = registrationRepository.findByActivityIdAndUserId(createRequest.activityId(), createRequest.userId())
                 .orElseThrow(() -> new BizException(HttpStatus.BAD_REQUEST, "该用户未报名活动，不能登记服务记录"));
+        if (registration.getStatus() != RegistrationStatus.CHECKED_OUT || registration.getCheckOutAt() == null) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "该用户尚未完成签退，不能登记服务记录");
+        }
         ServiceRecord record = new ServiceRecord();
         record.setActivityId(createRequest.activityId());
         record.setUserId(createRequest.userId());

@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS activity_registrations (
   status VARCHAR(20) NOT NULL,
   registered_at DATETIME NOT NULL,
   check_in_at DATETIME NULL,
+  check_out_at DATETIME NULL,
   CONSTRAINT uk_registration_activity_user UNIQUE (activity_id, user_id)
 );
 
