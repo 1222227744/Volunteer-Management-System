@@ -4,6 +4,7 @@ import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.notification.NotificationService;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
 import com.volunteer.vms.user.UserRepository;
@@ -39,19 +40,27 @@ public class ActivityController {
             RegistrationStatus.CHECKED_OUT,
             RegistrationStatus.COMPLETED
     );
+    private static final Set<RegistrationStatus> CANCELLABLE_REGISTRATION_STATUSES = EnumSet.of(
+            RegistrationStatus.PENDING,
+            RegistrationStatus.APPROVED,
+            RegistrationStatus.CHECKED_IN
+    );
 
     private final ActivityRepository activityRepository;
     private final ActivityRegistrationRepository registrationRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private final AuditLogService auditLogService;
 
     public ActivityController(ActivityRepository activityRepository,
                               ActivityRegistrationRepository registrationRepository,
                               UserRepository userRepository,
+                              NotificationService notificationService,
                               AuditLogService auditLogService) {
         this.activityRepository = activityRepository;
         this.registrationRepository = registrationRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
         this.auditLogService = auditLogService;
     }
 
@@ -115,6 +124,11 @@ public class ActivityController {
         registration.setUserId(currentUser.getId());
         registration.setStatus(RegistrationStatus.PENDING);
         registrationRepository.save(registration);
+        notificationService.notifyUser(
+                activity.getOrganizerId(),
+                "收到新的活动报名",
+                "活动《" + activity.getTitle() + "》收到来自 " + currentUser.getDisplayName() + " 的报名申请。"
+        );
         auditLogService.log(
                 request,
                 currentUser,
@@ -194,6 +208,11 @@ public class ActivityController {
             registration.setCheckOutAt(null);
         }
         registrationRepository.save(registration);
+        notificationService.notifyUser(
+                registration.getUserId(),
+                "活动报名状态更新",
+                buildRegistrationStatusMessage(activity, statusRequest.status())
+        );
         auditLogService.log(
                 request,
                 currentUser,
@@ -223,6 +242,11 @@ public class ActivityController {
         registration.setStatus(RegistrationStatus.CHECKED_IN);
         registration.setCheckInAt(LocalDateTime.now());
         registrationRepository.save(registration);
+        notificationService.notifyUser(
+                registration.getUserId(),
+                "活动签到成功",
+                "你已在活动《" + activity.getTitle() + "》完成签到。"
+        );
         auditLogService.log(
                 request,
                 currentUser,
@@ -252,6 +276,11 @@ public class ActivityController {
         registration.setStatus(RegistrationStatus.CHECKED_OUT);
         registration.setCheckOutAt(LocalDateTime.now());
         registrationRepository.save(registration);
+        notificationService.notifyUser(
+                registration.getUserId(),
+                "活动签退成功",
+                "你已在活动《" + activity.getTitle() + "》完成签退，可由组织方登记服务记录。"
+        );
         auditLogService.log(
                 request,
                 currentUser,
@@ -264,6 +293,7 @@ public class ActivityController {
     }
 
     @PatchMapping("/{activityId}/status")
+    @Transactional
     public ApiResponse<Void> updateStatus(HttpServletRequest request,
                                           @PathVariable Long activityId,
                                           @Valid @RequestBody UpdateStatusRequest statusRequest) {
@@ -273,8 +303,10 @@ public class ActivityController {
                 .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "活动不存在"));
         ensureCanManageActivity(currentUser, activity);
         ActivityStatus oldStatus = activity.getStatus();
+        validateStatusTransition(activity, statusRequest.status());
         activity.setStatus(statusRequest.status());
         activityRepository.save(activity);
+        handleActivityStatusSideEffects(activity, oldStatus, statusRequest.status());
         auditLogService.log(
                 request,
                 currentUser,
@@ -284,6 +316,94 @@ public class ActivityController {
                 "状态从 " + oldStatus + " 更新为 " + statusRequest.status()
         );
         return ApiResponse.success();
+    }
+
+    private void validateStatusTransition(Activity activity, ActivityStatus nextStatus) {
+        ActivityStatus currentStatus = activity.getStatus();
+        if (currentStatus == nextStatus) {
+            return;
+        }
+        boolean allowed = switch (currentStatus) {
+            case DRAFT -> nextStatus == ActivityStatus.PUBLISHED || nextStatus == ActivityStatus.CANCELLED;
+            case PUBLISHED -> nextStatus == ActivityStatus.ONGOING || nextStatus == ActivityStatus.CANCELLED;
+            case ONGOING -> nextStatus == ActivityStatus.FINISHED || nextStatus == ActivityStatus.CANCELLED;
+            case FINISHED, CANCELLED -> false;
+        };
+        if (!allowed) {
+            throw new BizException(HttpStatus.BAD_REQUEST,
+                    "活动状态不允许从 " + currentStatus + " 直接变更为 " + nextStatus);
+        }
+    }
+
+    private void handleActivityStatusSideEffects(Activity activity,
+                                                 ActivityStatus oldStatus,
+                                                 ActivityStatus newStatus) {
+        if (oldStatus == newStatus) {
+            return;
+        }
+        if (newStatus == ActivityStatus.CANCELLED) {
+            cancelRelatedRegistrations(activity);
+        } else {
+            notifyParticipantsForStatusChange(activity, oldStatus, newStatus);
+        }
+    }
+
+    private void cancelRelatedRegistrations(Activity activity) {
+        List<ActivityRegistration> registrations = registrationRepository.findByActivityId(activity.getId());
+        List<ActivityRegistration> changed = registrations.stream()
+                .filter(item -> CANCELLABLE_REGISTRATION_STATUSES.contains(item.getStatus()))
+                .peek(item -> {
+                    item.setStatus(RegistrationStatus.CANCELLED);
+                    item.setCheckInAt(null);
+                    item.setCheckOutAt(null);
+                })
+                .toList();
+        if (!changed.isEmpty()) {
+            registrationRepository.saveAll(changed);
+            notificationService.notifyUsers(
+                    changed.stream().map(ActivityRegistration::getUserId).toList(),
+                    "活动已取消",
+                    "活动《" + activity.getTitle() + "》已取消，原报名记录已同步关闭。"
+            );
+        }
+    }
+
+    private void notifyParticipantsForStatusChange(Activity activity,
+                                                   ActivityStatus oldStatus,
+                                                   ActivityStatus newStatus) {
+        List<Long> participantIds = registrationRepository.findByActivityId(activity.getId()).stream()
+                .filter(item -> OCCUPIED_STATUSES.contains(item.getStatus()) || item.getStatus() == RegistrationStatus.PENDING)
+                .map(ActivityRegistration::getUserId)
+                .distinct()
+                .toList();
+        if (participantIds.isEmpty()) {
+            return;
+        }
+        notificationService.notifyUsers(
+                participantIds,
+                "活动状态更新",
+                "活动《" + activity.getTitle() + "》状态已由 " + translateActivityStatus(oldStatus)
+                        + " 更新为 " + translateActivityStatus(newStatus) + "。"
+        );
+    }
+
+    private String buildRegistrationStatusMessage(Activity activity, RegistrationStatus status) {
+        return switch (status) {
+            case APPROVED -> "你报名的活动《" + activity.getTitle() + "》已审核通过，请按时参加。";
+            case REJECTED -> "你报名的活动《" + activity.getTitle() + "》未通过审核，请关注后续活动。";
+            case CANCELLED -> "你在活动《" + activity.getTitle() + "》中的报名已被取消。";
+            default -> "活动《" + activity.getTitle() + "》的报名状态已更新为 " + status + "。";
+        };
+    }
+
+    private String translateActivityStatus(ActivityStatus status) {
+        return switch (status) {
+            case DRAFT -> "草稿";
+            case PUBLISHED -> "报名中";
+            case ONGOING -> "进行中";
+            case FINISHED -> "已结束";
+            case CANCELLED -> "已取消";
+        };
     }
 
     private void ensureCanManageActivity(User currentUser, Activity activity) {

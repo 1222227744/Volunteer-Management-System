@@ -4,8 +4,7 @@ import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
-import com.volunteer.vms.notification.Notification;
-import com.volunteer.vms.notification.NotificationRepository;
+import com.volunteer.vms.notification.NotificationService;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,14 +25,14 @@ import java.util.List;
 @RequestMapping("/api/feedbacks")
 public class FeedbackController {
     private final FeedbackRepository feedbackRepository;
-    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
     private final AuditLogService auditLogService;
 
     public FeedbackController(FeedbackRepository feedbackRepository,
-                              NotificationRepository notificationRepository,
+                              NotificationService notificationService,
                               AuditLogService auditLogService) {
         this.feedbackRepository = feedbackRepository;
-        this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
         this.auditLogService = auditLogService;
     }
 
@@ -45,7 +44,15 @@ public class FeedbackController {
         feedback.setUserId(currentUser.getId());
         feedback.setContent(submitRequest.content());
         feedback.setStatus(FeedbackStatus.OPEN);
-        feedbackRepository.save(feedback);
+        Feedback saved = feedbackRepository.save(feedback);
+        auditLogService.log(
+                request,
+                currentUser,
+                "FEEDBACK_SUBMITTED",
+                "FEEDBACK",
+                saved.getId(),
+                "提交反馈: " + summarizeForAudit(submitRequest.content())
+        );
         return ApiResponse.success();
     }
 
@@ -62,7 +69,7 @@ public class FeedbackController {
     @GetMapping
     public ApiResponse<List<FeedbackResponse>> allFeedback(HttpServletRequest request) {
         User currentUser = AuthUtils.currentUser(request);
-        AuthUtils.requireRole(currentUser, Role.ADMIN, Role.ORGANIZER);
+        AuthUtils.requireRole(currentUser, Role.ADMIN);
         List<FeedbackResponse> data = feedbackRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(FeedbackResponse::from)
@@ -75,7 +82,7 @@ public class FeedbackController {
                                      @PathVariable Long id,
                                      @Valid @RequestBody ResolveFeedbackRequest resolveRequest) {
         User currentUser = AuthUtils.currentUser(request);
-        AuthUtils.requireRole(currentUser, Role.ADMIN, Role.ORGANIZER);
+        AuthUtils.requireRole(currentUser, Role.ADMIN);
         Feedback feedback = feedbackRepository.findById(id)
                 .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "反馈不存在"));
         feedback.setStatus(FeedbackStatus.RESOLVED);
@@ -83,11 +90,7 @@ public class FeedbackController {
         feedback.setResolvedAt(LocalDateTime.now());
         feedbackRepository.save(feedback);
 
-        Notification notification = new Notification();
-        notification.setUserId(feedback.getUserId());
-        notification.setTitle("反馈已处理");
-        notification.setContent(resolveRequest.reply());
-        notificationRepository.save(notification);
+        notificationService.notifyUser(feedback.getUserId(), "反馈已处理", resolveRequest.reply());
         auditLogService.log(
                 request,
                 currentUser,
@@ -97,6 +100,14 @@ public class FeedbackController {
                 "处理回复=" + resolveRequest.reply()
         );
         return ApiResponse.success();
+    }
+
+    private String summarizeForAudit(String content) {
+        String normalized = content == null ? "" : content.trim();
+        if (normalized.length() <= 60) {
+            return normalized;
+        }
+        return normalized.substring(0, 60) + "...";
     }
 
     public record SubmitFeedbackRequest(

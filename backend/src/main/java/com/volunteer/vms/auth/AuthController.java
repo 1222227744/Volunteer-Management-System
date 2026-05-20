@@ -1,5 +1,6 @@
 package com.volunteer.vms.auth;
 
+import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
@@ -27,17 +28,21 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenSessionService tokenSessionService;
+    private final AuditLogService auditLogService;
 
     public AuthController(UserRepository userRepository,
                           PasswordEncoder passwordEncoder,
-                          TokenSessionService tokenSessionService) {
+                          TokenSessionService tokenSessionService,
+                          AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenSessionService = tokenSessionService;
+        this.auditLogService = auditLogService;
     }
 
     @PostMapping("/register")
-    public ApiResponse<UserProfileResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ApiResponse<UserProfileResponse> register(HttpServletRequest httpRequest,
+                                                     @Valid @RequestBody RegisterRequest request) {
         if (userRepository.existsByUsername(request.username())) {
             throw new BizException(HttpStatus.BAD_REQUEST, "用户名已存在");
         }
@@ -47,17 +52,34 @@ public class AuthController {
         user.setDisplayName(request.displayName());
         user.setRole(Role.VOLUNTEER);
         User saved = userRepository.save(user);
+        auditLogService.log(
+                httpRequest,
+                saved,
+                "USER_REGISTERED",
+                "USER",
+                saved.getId(),
+                "用户完成注册"
+        );
         return ApiResponse.success(UserProfileResponse.from(saved));
     }
 
     @PostMapping("/login")
-    public ApiResponse<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
+    public ApiResponse<Map<String, Object>> login(HttpServletRequest httpRequest,
+                                                  @Valid @RequestBody LoginRequest request) {
         User user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new BizException(HttpStatus.UNAUTHORIZED, "用户名或密码错误"));
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BizException(HttpStatus.UNAUTHORIZED, "用户名或密码错误");
         }
         String token = tokenSessionService.createToken(user);
+        auditLogService.log(
+                httpRequest,
+                user,
+                "USER_LOGGED_IN",
+                "USER",
+                user.getId(),
+                "用户登录成功"
+        );
         return ApiResponse.success(Map.of(
                 "token", token,
                 "user", UserProfileResponse.from(user)
@@ -66,9 +88,25 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ApiResponse<Void> logout(HttpServletRequest request) {
+        User currentUser = null;
+        try {
+            currentUser = AuthUtils.currentUser(request);
+        } catch (BizException ignored) {
+            // logout can still proceed when the token is already invalid
+        }
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             tokenSessionService.removeToken(authHeader.substring(7).trim());
+        }
+        if (currentUser != null) {
+            auditLogService.log(
+                    request,
+                    currentUser,
+                    "USER_LOGGED_OUT",
+                    "USER",
+                    currentUser.getId(),
+                    "用户退出登录"
+            );
         }
         return ApiResponse.success();
     }

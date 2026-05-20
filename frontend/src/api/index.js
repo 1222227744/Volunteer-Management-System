@@ -84,7 +84,14 @@ export const dashboardApi = {
 
 export const serviceRecordApi = {
   my: () => apiRequest("/api/service-records/me"),
-  byUser: (userId) => apiRequest(`/api/service-records/user/${userId}`),
+  byUser: (userId, activityId = null) => {
+    const query = new URLSearchParams();
+    if (activityId) {
+      query.set("activityId", String(activityId));
+    }
+    const suffix = query.toString();
+    return apiRequest(`/api/service-records/user/${userId}${suffix ? `?${suffix}` : ""}`);
+  },
   create: (payload) =>
     apiRequest("/api/service-records", {
       method: "POST",
@@ -131,6 +138,16 @@ export const feedbackApi = {
       method: "PATCH",
       body: JSON.stringify(payload)
     })
+};
+
+export const activityFeedbackApi = {
+  submit: (payload) =>
+    apiRequest("/api/activity-feedbacks", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  my: () => apiRequest("/api/activity-feedbacks/my"),
+  byActivity: (activityId) => apiRequest(`/api/activity-feedbacks/activity/${activityId}`)
 };
 
 export const auditApi = {

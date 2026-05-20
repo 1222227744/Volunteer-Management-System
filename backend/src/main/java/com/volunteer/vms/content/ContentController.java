@@ -42,6 +42,14 @@ public class ContentController {
         contentPost.setContent(submitRequest.content());
         contentPost.setStatus(ContentStatus.PENDING);
         ContentPost saved = contentPostRepository.save(contentPost);
+        auditLogService.log(
+                request,
+                currentUser,
+                "CONTENT_SUBMITTED",
+                "CONTENT",
+                saved.getId(),
+                "提交内容: " + submitRequest.title()
+        );
         return ApiResponse.success(ContentResponse.from(saved));
     }
 

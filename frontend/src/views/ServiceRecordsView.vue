@@ -50,6 +50,25 @@
         </div>
       </div>
 
+      <div v-if="canManage && recordForm.activityId" class="card" style="margin-bottom: 14px;">
+        <h3>活动评价概览</h3>
+        <p class="muted">
+          当前活动平均评分：{{ activityFeedbackSummary.averageRating || 0 }} / 5，
+          已提交评价 {{ activityFeedbackSummary.count || 0 }} 条
+        </p>
+        <div class="list" style="margin-top: 10px;">
+          <article v-for="item in activityFeedbackSummary.items" :key="item.id" class="card">
+            <div class="stack" style="justify-content: space-between;">
+              <strong>{{ item.userDisplayName }}</strong>
+              <span class="tag">{{ item.rating }} / 5</span>
+            </div>
+            <p class="muted">{{ item.comment }}</p>
+            <p class="muted">评价时间：{{ formatDate(item.createdAt) }}</p>
+          </article>
+          <p v-if="!(activityFeedbackSummary.items || []).length" class="notice">当前活动还没有评价记录。</p>
+        </div>
+      </div>
+
       <div class="grid two">
         <div class="card">
           <h3>我的服务记录</h3>
@@ -89,7 +108,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { activityApi, serviceRecordApi } from "../api";
+import { activityApi, activityFeedbackApi, serviceRecordApi } from "../api";
 import { authState } from "../stores/auth";
 import { formatRegistrationStatus } from "../utils/labels";
 
@@ -104,6 +123,7 @@ const myRecords = ref([]);
 const myTotalHours = ref(0);
 const selectedUserRecords = ref([]);
 const selectedUserTotalHours = ref(0);
+const activityFeedbackSummary = ref({ averageRating: 0, count: 0, items: [] });
 
 const recordForm = reactive({
   activityId: "",
@@ -149,11 +169,20 @@ async function onActivityChange(resetUser = true) {
     selectedUserTotalHours.value = 0;
     selectedUserRecords.value = [];
   }
+  activityFeedbackSummary.value = { averageRating: 0, count: 0, items: [] };
   if (!recordForm.activityId) {
     registrations.value = [];
     return;
   }
-  registrations.value = await activityApi.registrations(recordForm.activityId);
+  const tasks = [activityApi.registrations(recordForm.activityId)];
+  if (canManage.value) {
+    tasks.push(activityFeedbackApi.byActivity(recordForm.activityId));
+  }
+  const [registrationData, feedbackData] = await Promise.all(tasks);
+  registrations.value = registrationData;
+  if (feedbackData) {
+    activityFeedbackSummary.value = feedbackData;
+  }
 }
 
 async function onUserChange() {
@@ -162,7 +191,7 @@ async function onUserChange() {
   if (!recordForm.userId) {
     return;
   }
-  const data = await serviceRecordApi.byUser(recordForm.userId);
+  const data = await serviceRecordApi.byUser(recordForm.userId, recordForm.activityId || null);
   selectedUserTotalHours.value = data.totalHours;
   selectedUserRecords.value = data.records;
 }

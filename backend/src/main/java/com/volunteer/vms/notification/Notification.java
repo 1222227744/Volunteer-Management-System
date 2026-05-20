@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /**
  * 核心实体：对应 SRS FR-06 的消息通知与回执查看。
- * userId 为空表示广播通知，非空表示定向通知。
+ * v2 起统一按用户维度持久化，确保每位用户拥有独立的已读状态。
  */
 @Entity
 @Table(name = "notifications")

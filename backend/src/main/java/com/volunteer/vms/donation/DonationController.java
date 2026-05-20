@@ -1,5 +1,6 @@
 package com.volunteer.vms.donation;
 
+import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.user.Role;
@@ -24,9 +25,12 @@ import java.util.Map;
 @RequestMapping("/api/donations")
 public class DonationController {
     private final DonationRepository donationRepository;
+    private final AuditLogService auditLogService;
 
-    public DonationController(DonationRepository donationRepository) {
+    public DonationController(DonationRepository donationRepository,
+                              AuditLogService auditLogService) {
         this.donationRepository = donationRepository;
+        this.auditLogService = auditLogService;
     }
 
     @PostMapping
@@ -42,7 +46,15 @@ public class DonationController {
         );
         donation.setAmount(createRequest.amount());
         donation.setMessage(createRequest.message());
-        donationRepository.save(donation);
+        Donation saved = donationRepository.save(donation);
+        auditLogService.log(
+                request,
+                currentUser,
+                "DONATION_CREATED",
+                "DONATION",
+                saved.getId(),
+                "提交捐赠，金额=" + createRequest.amount()
+        );
         return ApiResponse.success();
     }
 
@@ -59,7 +71,7 @@ public class DonationController {
     @GetMapping
     public ApiResponse<Map<String, Object>> allDonations(HttpServletRequest request) {
         User currentUser = AuthUtils.currentUser(request);
-        AuthUtils.requireRole(currentUser, Role.ADMIN, Role.ORGANIZER);
+        AuthUtils.requireRole(currentUser, Role.ADMIN);
         List<DonationResponse> items = donationRepository.findAllByOrderByCreatedAtDesc()
                 .stream()
                 .map(DonationResponse::from)

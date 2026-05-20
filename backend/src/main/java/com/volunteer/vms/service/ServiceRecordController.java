@@ -9,6 +9,7 @@ import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.notification.NotificationService;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
 import com.volunteer.vms.user.UserRepository;
@@ -41,17 +42,20 @@ public class ServiceRecordController {
     private final ActivityRepository activityRepository;
     private final ActivityRegistrationRepository registrationRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private final AuditLogService auditLogService;
 
     public ServiceRecordController(ServiceRecordRepository serviceRecordRepository,
                                    ActivityRepository activityRepository,
                                    ActivityRegistrationRepository registrationRepository,
                                    UserRepository userRepository,
+                                   NotificationService notificationService,
                                    AuditLogService auditLogService) {
         this.serviceRecordRepository = serviceRecordRepository;
         this.activityRepository = activityRepository;
         this.registrationRepository = registrationRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
         this.auditLogService = auditLogService;
     }
 
@@ -73,6 +77,9 @@ public class ServiceRecordController {
         if (registration.getStatus() != RegistrationStatus.CHECKED_OUT || registration.getCheckOutAt() == null) {
             throw new BizException(HttpStatus.BAD_REQUEST, "该用户尚未完成签退，不能登记服务记录");
         }
+        if (serviceRecordRepository.existsByActivityIdAndUserId(createRequest.activityId(), createRequest.userId())) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "该活动的服务记录已登记，请勿重复提交");
+        }
         ServiceRecord record = new ServiceRecord();
         record.setActivityId(createRequest.activityId());
         record.setUserId(createRequest.userId());
@@ -87,6 +94,11 @@ public class ServiceRecordController {
         int gainedPoints = createRequest.hours().multiply(BigDecimal.TEN).intValue();
         targetUser.setPoints(targetUser.getPoints() + gainedPoints);
         userRepository.save(targetUser);
+        notificationService.notifyUser(
+                targetUser.getId(),
+                "服务记录已登记",
+                "活动《" + activity.getTitle() + "》的服务记录已登记，新增 " + createRequest.hours() + " 小时，积分 +" + gainedPoints + "。"
+        );
         auditLogService.log(
                 request,
                 currentUser,
@@ -105,10 +117,12 @@ public class ServiceRecordController {
     }
 
     @GetMapping("/user/{userId}")
-    public ApiResponse<Map<String, Object>> userRecords(HttpServletRequest request, @PathVariable Long userId) {
+    public ApiResponse<Map<String, Object>> userRecords(HttpServletRequest request,
+                                                        @PathVariable Long userId,
+                                                        @RequestParam(required = false) Long activityId) {
         User currentUser = AuthUtils.currentUser(request);
         AuthUtils.requireRole(currentUser, Role.ORGANIZER, Role.ADMIN);
-        return buildUserRecordsResponse(userId);
+        return buildUserRecordsResponse(currentUser, userId, activityId);
     }
 
     private ApiResponse<Map<String, Object>> buildUserRecordsResponse(Long userId) {
@@ -119,6 +133,37 @@ public class ServiceRecordController {
         BigDecimal totalHours = serviceRecordRepository.sumHoursByUserId(userId);
         List<ServiceRecordResponse> data = records.stream()
                 .map(record -> ServiceRecordResponse.from(record, activityMap.get(record.getActivityId())))
+                .toList();
+        return ApiResponse.success(Map.of(
+                "totalHours", totalHours,
+                "records", data
+        ));
+    }
+
+    private ApiResponse<Map<String, Object>> buildUserRecordsResponse(User currentUser, Long userId, Long activityId) {
+        if (currentUser.getRole() == Role.ADMIN) {
+            if (activityId == null) {
+                return buildUserRecordsResponse(userId);
+            }
+            return buildScopedUserRecordsResponse(userId, activityId);
+        }
+        if (activityId == null) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "组织方查询志愿者服务记录时必须指定活动");
+        }
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "活动不存在"));
+        if (!currentUser.getId().equals(activity.getOrganizerId())) {
+            throw new BizException(HttpStatus.FORBIDDEN, "只能查看自己活动范围内的服务记录");
+        }
+        return buildScopedUserRecordsResponse(userId, activityId);
+    }
+
+    private ApiResponse<Map<String, Object>> buildScopedUserRecordsResponse(Long userId, Long activityId) {
+        List<ServiceRecord> records = serviceRecordRepository.findByUserIdAndActivityIdOrderByCreatedAtDesc(userId, activityId);
+        Activity activity = activityRepository.findById(activityId).orElse(null);
+        BigDecimal totalHours = serviceRecordRepository.sumHoursByUserIdAndActivityId(userId, activityId);
+        List<ServiceRecordResponse> data = records.stream()
+                .map(record -> ServiceRecordResponse.from(record, activity))
                 .toList();
         return ApiResponse.success(Map.of(
                 "totalHours", totalHours,

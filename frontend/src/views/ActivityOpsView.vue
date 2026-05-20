@@ -41,6 +41,9 @@
         <p class="muted">
           当前状态：{{ formatActivityStatus(selectedActivity.status) }} | 报名人数：{{ selectedActivity.registeredCount }}/{{ selectedActivity.maxParticipants }}
         </p>
+        <p class="muted">
+          活动评价：平均 {{ feedbackSummary.averageRating || 0 }} / 5，共 {{ feedbackSummary.count || 0 }} 条
+        </p>
         <div class="list">
           <article class="card" v-for="item in registrations" :key="item.registrationId">
             <div class="stack" style="justify-content: space-between; align-items: center;">
@@ -105,12 +108,13 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
-import { activityApi } from "../api";
+import { activityApi, activityFeedbackApi } from "../api";
 import { authState } from "../stores/auth";
 import { formatActivityStatus, formatRegistrationStatus } from "../utils/labels";
 
 const activities = ref([]);
 const registrations = ref([]);
+const feedbackSummary = ref({ averageRating: 0, count: 0, items: [] });
 const selectedActivityId = ref("");
 const nextStatus = ref("PUBLISHED");
 
@@ -145,13 +149,19 @@ async function onSelectActivity() {
   ok.value = false;
   if (!selectedActivityId.value) {
     registrations.value = [];
+    feedbackSummary.value = { averageRating: 0, count: 0, items: [] };
     return;
   }
   const activity = selectedActivity.value;
   if (activity) {
     nextStatus.value = activity.status;
   }
-  registrations.value = await activityApi.registrations(selectedActivityId.value);
+  const [registrationData, feedbackData] = await Promise.all([
+    activityApi.registrations(selectedActivityId.value),
+    activityFeedbackApi.byActivity(selectedActivityId.value)
+  ]);
+  registrations.value = registrationData;
+  feedbackSummary.value = feedbackData;
 }
 
 async function updateStatus() {
@@ -165,6 +175,7 @@ async function updateStatus() {
     ok.value = true;
     message.value = "活动状态更新成功";
     await loadActivities();
+    await onSelectActivity();
   } catch (err) {
     message.value = err.message;
   }
@@ -180,8 +191,8 @@ async function reviewRegistration(userId, status) {
     await activityApi.reviewRegistration(selectedActivityId.value, userId, status);
     ok.value = true;
     message.value = status === "APPROVED" ? "报名审核通过" : "报名已驳回";
-    registrations.value = await activityApi.registrations(selectedActivityId.value);
     await loadActivities();
+    await onSelectActivity();
   } catch (err) {
     message.value = err.message;
   }
@@ -197,8 +208,8 @@ async function checkIn(userId) {
     await activityApi.checkIn(selectedActivityId.value, userId);
     ok.value = true;
     message.value = "签到成功";
-    registrations.value = await activityApi.registrations(selectedActivityId.value);
     await loadActivities();
+    await onSelectActivity();
   } catch (err) {
     message.value = err.message;
   }
@@ -214,8 +225,8 @@ async function checkOut(userId) {
     await activityApi.checkOut(selectedActivityId.value, userId);
     ok.value = true;
     message.value = "签退成功";
-    registrations.value = await activityApi.registrations(selectedActivityId.value);
     await loadActivities();
+    await onSelectActivity();
   } catch (err) {
     message.value = err.message;
   }
