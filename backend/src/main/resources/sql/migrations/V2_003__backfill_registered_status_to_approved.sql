@@ -1,0 +1,6 @@
+UPDATE activity_registrations
+SET status = 'APPROVED'
+WHERE status = 'REGISTERED';
+
+ALTER TABLE activity_registrations
+MODIFY COLUMN status ENUM('PENDING','APPROVED','REJECTED','CHECKED_IN','CHECKED_OUT','COMPLETED','CANCELLED') NOT NULL;
