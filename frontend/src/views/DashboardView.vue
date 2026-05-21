@@ -8,39 +8,42 @@
       <p v-if="!canManage" class="notice error">当前账号无权限访问统计看板。</p>
       <template v-else>
         <p v-if="error" class="notice error">{{ error }}</p>
-        <div v-else class="stats">
-          <article class="stat">
-            <h4>用户总数</h4>
-            <strong>{{ stats.userCount ?? 0 }}</strong>
-          </article>
-          <article class="stat">
-            <h4>活动总数</h4>
-            <strong>{{ stats.activityCount ?? 0 }}</strong>
-          </article>
-          <article class="stat">
-            <h4>报名总数</h4>
-            <strong>{{ stats.registrationCount ?? 0 }}</strong>
-          </article>
-          <article class="stat">
-            <h4>完成报名</h4>
-            <strong>{{ stats.completedRegistrationCount ?? 0 }}</strong>
-          </article>
-          <article class="stat">
-            <h4>累计服务时长</h4>
-            <strong>{{ stats.totalServiceHours ?? 0 }}</strong>
-          </article>
-          <article class="stat">
-            <h4>待审核内容</h4>
-            <strong>{{ stats.pendingContentCount ?? 0 }}</strong>
-          </article>
-          <article class="stat">
-            <h4>待处理反馈</h4>
-            <strong>{{ stats.feedbackOpenCount ?? 0 }}</strong>
-          </article>
-          <article class="stat">
-            <h4>捐赠总金额</h4>
-            <strong>{{ stats.donationTotalAmount ?? 0 }}</strong>
-          </article>
+        <div v-else>
+          <p class="notice" style="margin-bottom: 12px;">统计范围：{{ stats.scopeLabel || "未定义" }}</p>
+          <div class="stats">
+            <article class="stat">
+              <h4>用户总数</h4>
+              <strong>{{ stats.userCount ?? 0 }}</strong>
+            </article>
+            <article class="stat">
+              <h4>活动总数</h4>
+              <strong>{{ stats.activityCount ?? 0 }}</strong>
+            </article>
+            <article class="stat">
+              <h4>报名总数</h4>
+              <strong>{{ stats.registrationCount ?? 0 }}</strong>
+            </article>
+            <article class="stat">
+              <h4>完成报名</h4>
+              <strong>{{ stats.completedRegistrationCount ?? 0 }}</strong>
+            </article>
+            <article class="stat">
+              <h4>累计服务时长</h4>
+              <strong>{{ stats.totalServiceHours ?? 0 }}</strong>
+            </article>
+            <article class="stat">
+              <h4>待审核内容</h4>
+              <strong>{{ stats.pendingContentCount ?? 0 }}</strong>
+            </article>
+            <article class="stat">
+              <h4>待处理反馈</h4>
+              <strong>{{ stats.canViewFeedbackMetrics ? (stats.feedbackOpenCount ?? 0) : "-" }}</strong>
+            </article>
+            <article class="stat">
+              <h4>捐赠总金额</h4>
+              <strong>{{ stats.canViewDonationMetrics ? (stats.donationTotalAmount ?? 0) : "-" }}</strong>
+            </article>
+          </div>
         </div>
       </template>
     </div>

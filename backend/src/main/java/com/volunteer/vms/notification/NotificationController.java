@@ -27,7 +27,7 @@ public class NotificationController {
     @GetMapping("/my")
     public ApiResponse<Map<String, Object>> myNotifications(HttpServletRequest request) {
         User currentUser = AuthUtils.currentUser(request);
-        List<NotificationResponse> notifications = notificationRepository.findByUserIdOrUserIdIsNullOrderByCreatedAtDesc(currentUser.getId())
+        List<NotificationResponse> notifications = notificationRepository.findByUserIdOrderByCreatedAtDesc(currentUser.getId())
                 .stream()
                 .map(NotificationResponse::from)
                 .toList();
@@ -41,11 +41,8 @@ public class NotificationController {
     @PatchMapping("/{id}/read")
     public ApiResponse<Void> markRead(HttpServletRequest request, @PathVariable Long id) {
         User currentUser = AuthUtils.currentUser(request);
-        Notification notification = notificationRepository.findById(id)
+        Notification notification = notificationRepository.findByIdAndUserId(id, currentUser.getId())
                 .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "通知不存在"));
-        if (notification.getUserId() != null && !notification.getUserId().equals(currentUser.getId())) {
-            throw new BizException(HttpStatus.FORBIDDEN, "不能操作他人通知");
-        }
         notification.setReadFlag(true);
         notificationRepository.save(notification);
         return ApiResponse.success();

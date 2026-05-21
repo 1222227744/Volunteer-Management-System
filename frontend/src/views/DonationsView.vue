@@ -90,7 +90,7 @@ const myTotal = ref(0);
 const allTotal = ref(0);
 
 const canManage = computed(
-  () => authState.user?.role === "ADMIN" || authState.user?.role === "ORGANIZER"
+  () => authState.user?.role === "ADMIN"
 );
 
 function formatDate(raw) {

@@ -45,7 +45,18 @@ CREATE TABLE IF NOT EXISTS service_records (
   hours DECIMAL(6,2) NOT NULL,
   achievement VARCHAR(1000) NOT NULL,
   evidence_url VARCHAR(500) NULL,
-  created_at DATETIME NOT NULL
+  created_at DATETIME NOT NULL,
+  CONSTRAINT uk_service_record_activity_user UNIQUE (activity_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS activity_feedbacks (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  activity_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  rating INT NOT NULL,
+  comment VARCHAR(1000) NOT NULL,
+  created_at DATETIME NOT NULL,
+  CONSTRAINT uk_activity_feedback_activity_user UNIQUE (activity_id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS content_posts (
@@ -88,7 +99,7 @@ CREATE TABLE IF NOT EXISTS feedbacks (
 
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
-  user_id BIGINT NULL,
+  user_id BIGINT NOT NULL,
   title VARCHAR(120) NOT NULL,
   content VARCHAR(1000) NOT NULL,
   read_flag BIT(1) NOT NULL,
@@ -107,3 +118,12 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   ip_address VARCHAR(120) NOT NULL,
   created_at DATETIME NOT NULL
 );
+
+CREATE INDEX idx_activities_organizer_status ON activities (organizer_id, status);
+CREATE INDEX idx_registrations_activity_status ON activity_registrations (activity_id, status);
+CREATE INDEX idx_registrations_user_registered_at ON activity_registrations (user_id, registered_at);
+CREATE INDEX idx_service_records_user_created_at ON service_records (user_id, created_at);
+CREATE INDEX idx_feedbacks_user_created_at ON feedbacks (user_id, created_at);
+CREATE INDEX idx_notifications_user_read_created_at ON notifications (user_id, read_flag, created_at);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
+CREATE INDEX idx_audit_logs_action_created_at ON audit_logs (action, created_at);

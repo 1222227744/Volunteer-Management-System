@@ -84,7 +84,7 @@ const allFeedbacks = ref([]);
 const resolveReplies = reactive({});
 
 const canManage = computed(
-  () => authState.user?.role === "ADMIN" || authState.user?.role === "ORGANIZER"
+  () => authState.user?.role === "ADMIN"
 );
 
 function formatDate(raw) {

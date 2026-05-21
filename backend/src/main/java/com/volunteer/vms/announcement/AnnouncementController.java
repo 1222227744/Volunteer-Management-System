@@ -3,8 +3,7 @@ package com.volunteer.vms.announcement;
 import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
-import com.volunteer.vms.notification.Notification;
-import com.volunteer.vms.notification.NotificationRepository;
+import com.volunteer.vms.notification.NotificationService;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,14 +22,14 @@ import java.util.List;
 @RequestMapping("/api/announcements")
 public class AnnouncementController {
     private final AnnouncementRepository announcementRepository;
-    private final NotificationRepository notificationRepository;
+    private final NotificationService notificationService;
     private final AuditLogService auditLogService;
 
     public AnnouncementController(AnnouncementRepository announcementRepository,
-                                  NotificationRepository notificationRepository,
+                                  NotificationService notificationService,
                                   AuditLogService auditLogService) {
         this.announcementRepository = announcementRepository;
-        this.notificationRepository = notificationRepository;
+        this.notificationService = notificationService;
         this.auditLogService = auditLogService;
     }
 
@@ -54,11 +53,7 @@ public class AnnouncementController {
         announcement.setPublisherId(currentUser.getId());
         Announcement saved = announcementRepository.save(announcement);
 
-        Notification notification = new Notification();
-        notification.setUserId(null);
-        notification.setTitle("新公告: " + createRequest.title());
-        notification.setContent(createRequest.content());
-        notificationRepository.save(notification);
+        notificationService.notifyAllUsers("新公告: " + createRequest.title(), createRequest.content());
         auditLogService.log(
                 request,
                 currentUser,

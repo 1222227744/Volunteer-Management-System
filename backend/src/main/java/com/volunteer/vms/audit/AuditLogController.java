@@ -6,6 +6,11 @@ import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -47,10 +53,11 @@ public class AuditLogController {
         AuthUtils.requireRole(currentUser, Role.ADMIN);
         int safeLimit = Math.max(1, Math.min(limit, 300));
         FilterSpec filter = buildFilter(action, keyword, operatorName, targetType, from, to);
-
-        List<AuditLogResponse> data = auditLogRepository.findTop2000ByOrderByCreatedAtDesc().stream()
-                .filter(item -> matches(item, filter))
-                .limit(safeLimit)
+        Page<AuditLog> page = auditLogRepository.findAllBySpec(
+                buildSpecification(filter),
+                PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "createdAt", "id"))
+        );
+        List<AuditLogResponse> data = page.getContent().stream()
                 .map(AuditLogResponse::from)
                 .toList();
         return ApiResponse.success(data);
@@ -71,22 +78,18 @@ public class AuditLogController {
         int safePage = Math.max(1, page);
         int safeSize = Math.max(1, Math.min(size, 100));
         FilterSpec filter = buildFilter(action, keyword, operatorName, targetType, from, to);
-
-        List<AuditLog> filtered = auditLogRepository.findTop2000ByOrderByCreatedAtDesc().stream()
-                .filter(item -> matches(item, filter))
-                .toList();
-
-        int total = filtered.size();
-        int fromIndex = Math.min((safePage - 1) * safeSize, total);
-        int toIndex = Math.min(fromIndex + safeSize, total);
-        List<AuditLogResponse> items = filtered.subList(fromIndex, toIndex).stream()
+        Page<AuditLog> result = auditLogRepository.findAllBySpec(
+                buildSpecification(filter),
+                PageRequest.of(safePage - 1, safeSize, Sort.by(Sort.Direction.DESC, "createdAt", "id"))
+        );
+        List<AuditLogResponse> items = result.getContent().stream()
                 .map(AuditLogResponse::from)
                 .toList();
 
         return ApiResponse.success(Map.of(
                 "page", safePage,
                 "size", safeSize,
-                "total", total,
+                "total", result.getTotalElements(),
                 "items", items
         ));
     }
@@ -104,11 +107,10 @@ public class AuditLogController {
         AuthUtils.requireRole(currentUser, Role.ADMIN);
         int safeLimit = Math.max(1, Math.min(limit, 2000));
         FilterSpec filter = buildFilter(action, keyword, operatorName, targetType, from, to);
-
-        List<AuditLog> rows = auditLogRepository.findTop2000ByOrderByCreatedAtDesc().stream()
-                .filter(item -> matches(item, filter))
-                .limit(safeLimit)
-                .toList();
+        List<AuditLog> rows = auditLogRepository.findAllBySpec(
+                buildSpecification(filter),
+                PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "createdAt", "id"))
+        ).getContent();
 
         String csv = buildCsv(rows);
         byte[] payload = csv.getBytes(StandardCharsets.UTF_8);
@@ -147,36 +149,36 @@ public class AuditLogController {
         }
     }
 
-    private boolean matches(AuditLog item, FilterSpec filter) {
-        if (!filter.action().isBlank() && !item.getAction().equalsIgnoreCase(filter.action())) {
-            return false;
-        }
-        if (!filter.keyword().isBlank() && !containsKeyword(item, filter.keyword())) {
-            return false;
-        }
-        if (!filter.operatorName().isBlank() &&
-                !item.getOperatorName().toLowerCase(Locale.ROOT).contains(filter.operatorName())) {
-            return false;
-        }
-        if (!filter.targetType().isBlank() &&
-                !item.getTargetType().equalsIgnoreCase(filter.targetType())) {
-            return false;
-        }
-        if (filter.from() != null && item.getCreatedAt().isBefore(filter.from())) {
-            return false;
-        }
-        if (filter.to() != null && item.getCreatedAt().isAfter(filter.to())) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean containsKeyword(AuditLog item, String keyword) {
-        return item.getOperatorName().toLowerCase(Locale.ROOT).contains(keyword)
-                || item.getAction().toLowerCase(Locale.ROOT).contains(keyword)
-                || item.getTargetType().toLowerCase(Locale.ROOT).contains(keyword)
-                || item.getTargetId().toLowerCase(Locale.ROOT).contains(keyword)
-                || item.getDetail().toLowerCase(Locale.ROOT).contains(keyword);
+    private Specification<AuditLog> buildSpecification(FilterSpec filter) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (!filter.action().isBlank()) {
+                predicates.add(cb.equal(cb.upper(root.get("action")), filter.action()));
+            }
+            if (!filter.keyword().isBlank()) {
+                String pattern = "%" + filter.keyword() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("operatorName")), pattern),
+                        cb.like(cb.lower(root.get("action")), pattern),
+                        cb.like(cb.lower(root.get("targetType")), pattern),
+                        cb.like(cb.lower(root.get("targetId")), pattern),
+                        cb.like(cb.lower(root.get("detail")), pattern)
+                ));
+            }
+            if (!filter.operatorName().isBlank()) {
+                predicates.add(cb.like(cb.lower(root.get("operatorName")), "%" + filter.operatorName() + "%"));
+            }
+            if (!filter.targetType().isBlank()) {
+                predicates.add(cb.equal(cb.upper(root.get("targetType")), filter.targetType()));
+            }
+            if (filter.from() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), filter.from()));
+            }
+            if (filter.to() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), filter.to()));
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     private String buildCsv(List<AuditLog> rows) {

@@ -15,6 +15,8 @@ import com.volunteer.vms.content.ContentPostRepository;
 import com.volunteer.vms.content.ContentStatus;
 import com.volunteer.vms.donation.Donation;
 import com.volunteer.vms.donation.DonationRepository;
+import com.volunteer.vms.feedback.ActivityFeedback;
+import com.volunteer.vms.feedback.ActivityFeedbackRepository;
 import com.volunteer.vms.feedback.Feedback;
 import com.volunteer.vms.feedback.FeedbackRepository;
 import com.volunteer.vms.feedback.FeedbackStatus;
@@ -56,6 +58,7 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final ContentPostRepository contentPostRepository;
     private final AnnouncementRepository announcementRepository;
     private final DonationRepository donationRepository;
+    private final ActivityFeedbackRepository activityFeedbackRepository;
     private final FeedbackRepository feedbackRepository;
     private final NotificationRepository notificationRepository;
     private final AuditLogRepository auditLogRepository;
@@ -69,6 +72,7 @@ public class DemoDataInitializer implements CommandLineRunner {
                                ContentPostRepository contentPostRepository,
                                AnnouncementRepository announcementRepository,
                                DonationRepository donationRepository,
+                               ActivityFeedbackRepository activityFeedbackRepository,
                                FeedbackRepository feedbackRepository,
                                NotificationRepository notificationRepository,
                                AuditLogRepository auditLogRepository,
@@ -81,6 +85,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         this.contentPostRepository = contentPostRepository;
         this.announcementRepository = announcementRepository;
         this.donationRepository = donationRepository;
+        this.activityFeedbackRepository = activityFeedbackRepository;
         this.feedbackRepository = feedbackRepository;
         this.notificationRepository = notificationRepository;
         this.auditLogRepository = auditLogRepository;
@@ -103,6 +108,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         Map<String, Activity> activities = seedActivities(users);
         seedRegistrations(activities, users);
         seedServiceRecords(activities, users);
+        seedActivityFeedbacks(activities, users);
         seedContents(users);
         seedAnnouncements(users);
         seedDonations(users);
@@ -280,6 +286,24 @@ public class DemoDataInitializer implements CommandLineRunner {
                 ContentStatus.REJECTED, "请区分活动倡议与个人心得后重新投稿。", LocalDateTime.now().minusHours(20));
     }
 
+    private void seedActivityFeedbacks(Map<String, Activity> activities, Map<String, User> users) {
+        saveActivityFeedback(users.get("chen"), activities.get("park"), 5,
+                "活动组织清晰，分工明确，现场物资和路线说明都很到位。");
+        saveActivityFeedback(users.get("zhao"), activities.get("park"), 4,
+                "环保宣传和清洁任务衔接顺畅，建议后续增加中途补水点。");
+        saveActivityFeedback(users.get("lin"), activities.get("library"), 5,
+                "活动节奏舒适，儿童阅读陪伴和书架整理都安排得很合理。");
+    }
+
+    private void saveActivityFeedback(User user, Activity activity, int rating, String comment) {
+        ActivityFeedback feedback = new ActivityFeedback();
+        feedback.setUserId(user.getId());
+        feedback.setActivityId(activity.getId());
+        feedback.setRating(rating);
+        feedback.setComment(comment);
+        activityFeedbackRepository.save(feedback);
+    }
+
     private void saveContent(User user,
                              String title,
                              String content,
@@ -345,8 +369,10 @@ public class DemoDataInitializer implements CommandLineRunner {
     }
 
     private void seedNotifications(Map<String, User> users) {
-        saveNotification(null, "系统演示数据已加载",
-                "当前环境已预置活动、报名、服务记录、反馈和审计日志数据，可直接用于课程展示。", false);
+        for (User user : users.values()) {
+            saveNotification(user.getId(), "系统演示数据已加载",
+                    "当前环境已预置活动、报名、服务记录、反馈和审计日志数据，可直接用于课程展示。", false);
+        }
         saveNotification(users.get("liu").getId(), "反馈已处理",
                 "你提交的页面优化建议已完成处理，请前往反馈页面查看回复。", false);
         saveNotification(users.get("chen").getId(), "活动报名审核通过",

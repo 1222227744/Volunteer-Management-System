@@ -10,7 +10,9 @@ import java.time.LocalDateTime;
  * 同时作为 FR-05 积分排行的基础数据来源之一。
  */
 @Entity
-@Table(name = "service_records")
+@Table(name = "service_records", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_service_record_activity_user", columnNames = {"activity_id", "user_id"})
+})
 public class ServiceRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
