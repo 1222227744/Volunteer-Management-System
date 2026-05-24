@@ -151,9 +151,11 @@ public class DemoDataInitializer implements CommandLineRunner {
         activities.put("park", saveActivity(
                 "城市公园环保清洁行动",
                 "组织志愿者分组清理步道、草坪和水域周边垃圾，并向游客宣传垃圾分类知识。",
+                "需自备防晒用品，现场统一发放手套和垃圾袋。",
                 "城南市民公园",
                 LocalDateTime.now().minusDays(10),
                 LocalDateTime.now().minusDays(10).plusHours(4),
+                LocalDateTime.now().minusDays(12),
                 20,
                 ActivityStatus.FINISHED,
                 organizer.getId()
@@ -161,9 +163,11 @@ public class DemoDataInitializer implements CommandLineRunner {
         activities.put("library", saveActivity(
                 "社区图书馆阅读陪伴",
                 "为社区儿童开展阅读陪伴、绘本整理和借阅秩序维护。",
+                "需有耐心，能够完成基础图书分类和儿童陪伴阅读。",
                 "青禾社区图书馆",
                 LocalDateTime.now().minusDays(3),
                 LocalDateTime.now().minusDays(3).plusHours(3),
+                LocalDateTime.now().minusDays(4),
                 12,
                 ActivityStatus.FINISHED,
                 organizer.getId()
@@ -171,9 +175,11 @@ public class DemoDataInitializer implements CommandLineRunner {
         activities.put("campus", saveActivity(
                 "校园迎新志愿服务",
                 "在报到点协助路线指引、物资发放和新生咨询接待。",
+                "需熟悉校园主要路线，能够连续服务不少于 3 小时。",
                 "大学生活动中心",
                 LocalDateTime.now().plusDays(2),
                 LocalDateTime.now().plusDays(2).plusHours(6),
+                LocalDateTime.now().plusDays(1),
                 30,
                 ActivityStatus.PUBLISHED,
                 organizer.getId()
@@ -181,9 +187,11 @@ public class DemoDataInitializer implements CommandLineRunner {
         activities.put("elder", saveActivity(
                 "敬老院陪伴慰问",
                 "陪伴老人聊天、协助整理房间并进行简单文娱活动组织。",
+                "需具备基本沟通能力，活动当天服从现场分组安排。",
                 "康乐敬老院",
                 LocalDateTime.now().plusDays(5),
                 LocalDateTime.now().plusDays(5).plusHours(4),
+                LocalDateTime.now().plusDays(4),
                 15,
                 ActivityStatus.PUBLISHED,
                 organizer.getId()
@@ -193,18 +201,22 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     private Activity saveActivity(String title,
                                   String description,
+                                  String participationRequirement,
                                   String location,
                                   LocalDateTime startTime,
                                   LocalDateTime endTime,
+                                  LocalDateTime registrationDeadline,
                                   int maxParticipants,
                                   ActivityStatus status,
                                   Long organizerId) {
         Activity activity = new Activity();
         activity.setTitle(title);
         activity.setDescription(description);
+        activity.setParticipationRequirement(participationRequirement);
         activity.setLocation(location);
         activity.setStartTime(startTime);
         activity.setEndTime(endTime);
+        activity.setRegistrationDeadline(registrationDeadline);
         activity.setMaxParticipants(maxParticipants);
         activity.setStatus(status);
         activity.setOrganizerId(organizerId);
@@ -233,6 +245,19 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         saveRegistration(activities.get("elder"), users.get("lin"), RegistrationStatus.PENDING,
                 LocalDateTime.now().minusHours(4), null, null);
+
+        registrationRepository.findByActivityIdAndUserId(activities.get("park").getId(), users.get("liu").getId())
+                .ifPresent(item -> {
+                    item.setReviewComment("志愿者因时间冲突主动取消报名。");
+                    item.setReviewedAt(LocalDateTime.now().minusDays(10));
+                    registrationRepository.save(item);
+                });
+        registrationRepository.findByActivityIdAndUserId(activities.get("library").getId(), users.get("sun").getId())
+                .ifPresent(item -> {
+                    item.setReviewComment("本场阅读陪伴名额有限，优先安排已有阅读活动经验的志愿者。");
+                    item.setReviewedAt(LocalDateTime.now().minusDays(4));
+                    registrationRepository.save(item);
+                });
     }
 
     private void saveRegistration(Activity activity,

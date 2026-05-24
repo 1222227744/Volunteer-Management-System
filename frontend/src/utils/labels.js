@@ -2,6 +2,7 @@ export const activityStatusLabels = {
   DRAFT: "草稿",
   PUBLISHED: "报名中",
   ONGOING: "进行中",
+  OFFLINE: "已下架",
   FINISHED: "已结束",
   CANCELLED: "已取消"
 };

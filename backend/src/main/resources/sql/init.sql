@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS activities (
   location VARCHAR(200) NOT NULL,
   start_time DATETIME NOT NULL,
   end_time DATETIME NOT NULL,
+  registration_deadline DATETIME NULL,
+  participation_requirement VARCHAR(1000) NULL,
   max_participants INT NOT NULL,
   status VARCHAR(20) NOT NULL,
   organizer_id BIGINT NOT NULL,
@@ -35,6 +37,8 @@ CREATE TABLE IF NOT EXISTS activity_registrations (
   registered_at DATETIME NOT NULL,
   check_in_at DATETIME NULL,
   check_out_at DATETIME NULL,
+  review_comment VARCHAR(500) NULL,
+  reviewed_at DATETIME NULL,
   CONSTRAINT uk_registration_activity_user UNIQUE (activity_id, user_id)
 );
 

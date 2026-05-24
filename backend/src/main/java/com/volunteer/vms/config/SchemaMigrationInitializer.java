@@ -82,6 +82,26 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V2_010",
                     "补充审计日志动作时间索引",
                     "sql/migrations/V2_010__add_audit_log_action_created_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_001",
+                    "补充活动报名截止时间字段",
+                    "sql/migrations/V3_001__add_activity_registration_deadline.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_002",
+                    "补充活动参与要求字段",
+                    "sql/migrations/V3_002__add_activity_participation_requirement.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_003",
+                    "补充报名审核说明字段",
+                    "sql/migrations/V3_003__add_registration_review_comment.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_004",
+                    "补充报名审核时间字段",
+                    "sql/migrations/V3_004__add_registration_reviewed_at.sql"
             )
     );
 
@@ -132,6 +152,10 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V2_008" -> decideIndexMigration("service_records", "idx_service_records_user_created_at");
             case "V2_009" -> decideIndexMigration("audit_logs", "idx_audit_logs_created_at");
             case "V2_010" -> decideIndexMigration("audit_logs", "idx_audit_logs_action_created_at");
+            case "V3_001" -> decideColumnMigration("activities", "registration_deadline");
+            case "V3_002" -> decideColumnMigration("activities", "participation_requirement");
+            case "V3_003" -> decideColumnMigration("activity_registrations", "review_comment");
+            case "V3_004" -> decideColumnMigration("activity_registrations", "reviewed_at");
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }
@@ -253,6 +277,16 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             return baseline(indexName + " 索引已存在");
         }
         return execute("缺少 " + indexName + " 索引");
+    }
+
+    private MigrationDecision decideColumnMigration(String tableName, String columnName) {
+        if (!tableExists(tableName)) {
+            return baseline(tableName + " 表尚不存在");
+        }
+        if (columnExists(tableName, columnName)) {
+            return baseline(columnName + " 字段已存在");
+        }
+        return execute("缺少 " + columnName + " 字段");
     }
 
     private void ensureMigrationHistoryTable() {

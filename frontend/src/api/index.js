@@ -19,22 +19,51 @@ export const authApi = {
 };
 
 export const activityApi = {
-  list: () => apiRequest("/api/activities"),
+  list: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.status) {
+      query.set("status", params.status);
+    }
+    if (params.keyword) {
+      query.set("keyword", params.keyword);
+    }
+    if (params.location) {
+      query.set("location", params.location);
+    }
+    if (params.startFrom) {
+      query.set("startFrom", params.startFrom);
+    }
+    if (params.startTo) {
+      query.set("startTo", params.startTo);
+    }
+    const suffix = query.toString();
+    return apiRequest(`/api/activities${suffix ? `?${suffix}` : ""}`);
+  },
   create: (payload) =>
     apiRequest("/api/activities", {
       method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  update: (activityId, payload) =>
+    apiRequest(`/api/activities/${activityId}`, {
+      method: "PUT",
       body: JSON.stringify(payload)
     }),
   register: (activityId) =>
     apiRequest(`/api/activities/${activityId}/register`, {
       method: "POST"
     }),
+  cancelRegistration: (activityId, reason) =>
+    apiRequest(`/api/activities/${activityId}/cancel-registration`, {
+      method: "POST",
+      body: JSON.stringify({ reason })
+    }),
   myRegistrations: () => apiRequest("/api/activities/my-registrations"),
   registrations: (activityId) => apiRequest(`/api/activities/${activityId}/registrations`),
-  reviewRegistration: (activityId, userId, status) =>
+  reviewRegistration: (activityId, userId, status, comment = "") =>
     apiRequest(`/api/activities/${activityId}/registrations/${userId}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status, comment })
     }),
   checkIn: (activityId, userId) =>
     apiRequest(`/api/activities/${activityId}/check-in/${userId}`, {

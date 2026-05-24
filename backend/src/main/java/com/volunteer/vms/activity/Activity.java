@@ -30,6 +30,11 @@ public class Activity {
     @Column(nullable = false)
     private LocalDateTime endTime;
 
+    private LocalDateTime registrationDeadline;
+
+    @Column(length = 1000)
+    private String participationRequirement;
+
     @Column(nullable = false)
     private Integer maxParticipants;
 
@@ -99,6 +104,22 @@ public class Activity {
 
     public void setEndTime(LocalDateTime endTime) {
         this.endTime = endTime;
+    }
+
+    public LocalDateTime getRegistrationDeadline() {
+        return registrationDeadline;
+    }
+
+    public void setRegistrationDeadline(LocalDateTime registrationDeadline) {
+        this.registrationDeadline = registrationDeadline;
+    }
+
+    public String getParticipationRequirement() {
+        return participationRequirement;
+    }
+
+    public void setParticipationRequirement(String participationRequirement) {
+        this.participationRequirement = participationRequirement;
     }
 
     public Integer getMaxParticipants() {

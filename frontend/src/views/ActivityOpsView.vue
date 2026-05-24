@@ -27,6 +27,7 @@
                 <option value="DRAFT">{{ formatActivityStatus("DRAFT") }}</option>
                 <option value="PUBLISHED">{{ formatActivityStatus("PUBLISHED") }}</option>
                 <option value="ONGOING">{{ formatActivityStatus("ONGOING") }}</option>
+                <option value="OFFLINE">{{ formatActivityStatus("OFFLINE") }}</option>
                 <option value="FINISHED">{{ formatActivityStatus("FINISHED") }}</option>
                 <option value="CANCELLED">{{ formatActivityStatus("CANCELLED") }}</option>
               </select>
@@ -44,6 +45,10 @@
         <p class="muted">
           活动评价：平均 {{ feedbackSummary.averageRating || 0 }} / 5，共 {{ feedbackSummary.count || 0 }} 条
         </p>
+        <div class="field" style="margin: 12px 0;">
+          <label>报名审核/取消说明</label>
+          <input v-model.trim="reviewComment" placeholder="可填写通过、驳回或取消报名的处理说明" />
+        </div>
         <div class="list">
           <article class="card" v-for="item in registrations" :key="item.registrationId">
             <div class="stack" style="justify-content: space-between; align-items: center;">
@@ -57,6 +62,12 @@
                 </p>
                 <p v-if="item.checkOutAt" class="muted" style="margin: 6px 0 0;">
                   签退时间：{{ formatDate(item.checkOutAt) }}
+                </p>
+                <p v-if="item.reviewComment" class="muted" style="margin: 6px 0 0;">
+                  处理说明：{{ item.reviewComment }}
+                </p>
+                <p v-if="item.reviewedAt" class="muted" style="margin: 6px 0 0;">
+                  处理时间：{{ formatDate(item.reviewedAt) }}
                 </p>
               </div>
               <div class="stack">
@@ -73,6 +84,13 @@
                   @click="reviewRegistration(item.userId, 'REJECTED')"
                 >
                   驳回
+                </button>
+                <button
+                  v-if="item.status === 'APPROVED'"
+                  class="btn danger"
+                  @click="reviewRegistration(item.userId, 'CANCELLED')"
+                >
+                  取消报名
                 </button>
                 <button
                   v-if="item.status === 'APPROVED'"
@@ -117,6 +135,7 @@ const registrations = ref([]);
 const feedbackSummary = ref({ averageRating: 0, count: 0, items: [] });
 const selectedActivityId = ref("");
 const nextStatus = ref("PUBLISHED");
+const reviewComment = ref("");
 
 const message = ref("");
 const ok = ref(false);
@@ -188,9 +207,10 @@ async function reviewRegistration(userId, status) {
     return;
   }
   try {
-    await activityApi.reviewRegistration(selectedActivityId.value, userId, status);
+    await activityApi.reviewRegistration(selectedActivityId.value, userId, status, reviewComment.value);
     ok.value = true;
-    message.value = status === "APPROVED" ? "报名审核通过" : "报名已驳回";
+    message.value = status === "APPROVED" ? "报名审核通过" : status === "REJECTED" ? "报名已驳回" : "报名已取消";
+    reviewComment.value = "";
     await loadActivities();
     await onSelectActivity();
   } catch (err) {

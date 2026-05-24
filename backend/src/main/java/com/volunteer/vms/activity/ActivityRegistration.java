@@ -34,6 +34,11 @@ public class ActivityRegistration {
 
     private LocalDateTime checkOutAt;
 
+    @Column(length = 500)
+    private String reviewComment;
+
+    private LocalDateTime reviewedAt;
+
     @PrePersist
     public void prePersist() {
         if (status == null) {
@@ -98,5 +103,21 @@ public class ActivityRegistration {
 
     public void setCheckOutAt(LocalDateTime checkOutAt) {
         this.checkOutAt = checkOutAt;
+    }
+
+    public String getReviewComment() {
+        return reviewComment;
+    }
+
+    public void setReviewComment(String reviewComment) {
+        this.reviewComment = reviewComment;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
     }
 }

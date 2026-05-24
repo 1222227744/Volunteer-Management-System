@@ -14,6 +14,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -65,8 +66,18 @@ public class ActivityController {
     }
 
     @GetMapping
-    public ApiResponse<List<ActivityResponse>> listActivities() {
-        List<Activity> activities = activityRepository.findAllByOrderByStartTimeDesc();
+    public ApiResponse<List<ActivityResponse>> listActivities(@RequestParam(required = false) ActivityStatus status,
+                                                              @RequestParam(required = false) String keyword,
+                                                              @RequestParam(required = false) String location,
+                                                              @RequestParam(required = false)
+                                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                                                              LocalDateTime startFrom,
+                                                              @RequestParam(required = false)
+                                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+                                                              LocalDateTime startTo) {
+        List<Activity> activities = hasActivityFilters(status, keyword, location, startFrom, startTo)
+                ? activityRepository.search(status, normalizeFilter(keyword), normalizeFilter(location), startFrom, startTo)
+                : activityRepository.findAllByOrderByStartTimeDesc();
         List<ActivityResponse> response = activities.stream().map(activity -> {
             long registeredCount = registrationRepository.countByActivityIdAndStatusIn(activity.getId(), OCCUPIED_STATUSES);
             return ActivityResponse.from(activity, registeredCount);
@@ -82,12 +93,18 @@ public class ActivityController {
         if (!createRequest.endTime().isAfter(createRequest.startTime())) {
             throw new BizException(HttpStatus.BAD_REQUEST, "活动结束时间必须晚于开始时间");
         }
+        if (createRequest.registrationDeadline() != null
+                && createRequest.registrationDeadline().isAfter(createRequest.startTime())) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "报名截止时间不能晚于活动开始时间");
+        }
         Activity activity = new Activity();
         activity.setTitle(createRequest.title());
         activity.setDescription(createRequest.description());
         activity.setLocation(createRequest.location());
         activity.setStartTime(createRequest.startTime());
         activity.setEndTime(createRequest.endTime());
+        activity.setRegistrationDeadline(createRequest.registrationDeadline());
+        activity.setParticipationRequirement(createRequest.participationRequirement());
         activity.setMaxParticipants(createRequest.maxParticipants());
         activity.setStatus(createRequest.status() == null ? ActivityStatus.PUBLISHED : createRequest.status());
         activity.setOrganizerId(currentUser.getId());
@@ -103,6 +120,48 @@ public class ActivityController {
         return ApiResponse.success(ActivityResponse.from(saved, 0L));
     }
 
+    @PutMapping("/{activityId}")
+    public ApiResponse<ActivityResponse> updateActivity(HttpServletRequest request,
+                                                        @PathVariable Long activityId,
+                                                        @Valid @RequestBody UpdateActivityRequest updateRequest) {
+        User currentUser = AuthUtils.currentUser(request);
+        AuthUtils.requireRole(currentUser, Role.ORGANIZER, Role.ADMIN);
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "活动不存在"));
+        ensureCanManageActivity(currentUser, activity);
+        if (!updateRequest.endTime().isAfter(updateRequest.startTime())) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "活动结束时间必须晚于开始时间");
+        }
+        if (updateRequest.registrationDeadline() != null
+                && updateRequest.registrationDeadline().isAfter(updateRequest.startTime())) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "报名截止时间不能晚于活动开始时间");
+        }
+        long occupied = registrationRepository.countByActivityIdAndStatusIn(activityId, OCCUPIED_STATUSES);
+        if (updateRequest.maxParticipants() < occupied) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "人数上限不能小于当前已占用名额");
+        }
+
+        activity.setTitle(updateRequest.title());
+        activity.setDescription(updateRequest.description());
+        activity.setLocation(updateRequest.location());
+        activity.setStartTime(updateRequest.startTime());
+        activity.setEndTime(updateRequest.endTime());
+        activity.setRegistrationDeadline(updateRequest.registrationDeadline());
+        activity.setParticipationRequirement(updateRequest.participationRequirement());
+        activity.setMaxParticipants(updateRequest.maxParticipants());
+        Activity saved = activityRepository.save(activity);
+        notifyParticipantsForActivityUpdated(saved);
+        auditLogService.log(
+                request,
+                currentUser,
+                "ACTIVITY_UPDATED",
+                "ACTIVITY",
+                saved.getId(),
+                "更新活动信息: " + saved.getTitle()
+        );
+        return ApiResponse.success(ActivityResponse.from(saved, occupied));
+    }
+
     @PostMapping("/{activityId}/register")
     @Transactional
     public ApiResponse<Void> registerActivity(HttpServletRequest request, @PathVariable Long activityId) {
@@ -114,6 +173,9 @@ public class ActivityController {
         }
         if (!(activity.getStatus() == ActivityStatus.PUBLISHED || activity.getStatus() == ActivityStatus.ONGOING)) {
             throw new BizException(HttpStatus.BAD_REQUEST, "当前活动状态不允许报名");
+        }
+        if (activity.getRegistrationDeadline() != null && LocalDateTime.now().isAfter(activity.getRegistrationDeadline())) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "活动报名已截止");
         }
         long occupied = registrationRepository.countByActivityIdAndStatusIn(activityId, OCCUPIED_STATUSES);
         if (occupied >= activity.getMaxParticipants()) {
@@ -136,6 +198,41 @@ public class ActivityController {
                 "ACTIVITY_REGISTRATION",
                 registration.getId(),
                 "活动ID=" + activityId + " 提交报名申请，等待审核"
+        );
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/{activityId}/cancel-registration")
+    @Transactional
+    public ApiResponse<Void> cancelMyRegistration(HttpServletRequest request,
+                                                  @PathVariable Long activityId,
+                                                  @Valid @RequestBody CancelRegistrationRequest cancelRequest) {
+        User currentUser = AuthUtils.currentUser(request);
+        Activity activity = activityRepository.findById(activityId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "活动不存在"));
+        ActivityRegistration registration = registrationRepository.findByActivityIdAndUserId(activityId, currentUser.getId())
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "你尚未报名该活动"));
+        if (registration.getStatus() != RegistrationStatus.PENDING && registration.getStatus() != RegistrationStatus.APPROVED) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "当前报名状态不允许主动取消");
+        }
+        registration.setStatus(RegistrationStatus.CANCELLED);
+        registration.setCheckInAt(null);
+        registration.setCheckOutAt(null);
+        registration.setReviewComment(normalizeComment(cancelRequest.reason(), "志愿者主动取消报名"));
+        registration.setReviewedAt(LocalDateTime.now());
+        registrationRepository.save(registration);
+        notificationService.notifyUser(
+                activity.getOrganizerId(),
+                "志愿者取消报名",
+                currentUser.getDisplayName() + " 已取消活动《" + activity.getTitle() + "》的报名。"
+        );
+        auditLogService.log(
+                request,
+                currentUser,
+                "ACTIVITY_REGISTRATION_CANCELLED_BY_USER",
+                "ACTIVITY_REGISTRATION",
+                registration.getId(),
+                "活动ID=" + activityId + " 志愿者主动取消报名，原因=" + registration.getReviewComment()
         );
         return ApiResponse.success();
     }
@@ -174,7 +271,9 @@ public class ActivityController {
                         item.getStatus(),
                         item.getRegisteredAt(),
                         item.getCheckInAt(),
-                        item.getCheckOutAt()
+                        item.getCheckOutAt(),
+                        item.getReviewComment(),
+                        item.getReviewedAt()
                 ))
                 .toList();
         return ApiResponse.success(result);
@@ -203,6 +302,8 @@ public class ActivityController {
             throw new BizException(HttpStatus.BAD_REQUEST, "当前报名状态不允许再次审核");
         }
         registration.setStatus(statusRequest.status());
+        registration.setReviewComment(statusRequest.comment());
+        registration.setReviewedAt(LocalDateTime.now());
         if (statusRequest.status() != RegistrationStatus.APPROVED) {
             registration.setCheckInAt(null);
             registration.setCheckOutAt(null);
@@ -211,7 +312,7 @@ public class ActivityController {
         notificationService.notifyUser(
                 registration.getUserId(),
                 "活动报名状态更新",
-                buildRegistrationStatusMessage(activity, statusRequest.status())
+                buildRegistrationStatusMessage(activity, statusRequest.status(), statusRequest.comment())
         );
         auditLogService.log(
                 request,
@@ -220,6 +321,7 @@ public class ActivityController {
                 "ACTIVITY_REGISTRATION",
                 registration.getId(),
                 "活动ID=" + activityId + ", 用户ID=" + userId + ", 审核结果=" + statusRequest.status()
+                        + ", 说明=" + nullToDash(statusRequest.comment())
         );
         return ApiResponse.success();
     }
@@ -325,7 +427,10 @@ public class ActivityController {
         }
         boolean allowed = switch (currentStatus) {
             case DRAFT -> nextStatus == ActivityStatus.PUBLISHED || nextStatus == ActivityStatus.CANCELLED;
-            case PUBLISHED -> nextStatus == ActivityStatus.ONGOING || nextStatus == ActivityStatus.CANCELLED;
+            case PUBLISHED -> nextStatus == ActivityStatus.ONGOING
+                    || nextStatus == ActivityStatus.OFFLINE
+                    || nextStatus == ActivityStatus.CANCELLED;
+            case OFFLINE -> nextStatus == ActivityStatus.PUBLISHED || nextStatus == ActivityStatus.CANCELLED;
             case ONGOING -> nextStatus == ActivityStatus.FINISHED || nextStatus == ActivityStatus.CANCELLED;
             case FINISHED, CANCELLED -> false;
         };
@@ -387,13 +492,33 @@ public class ActivityController {
         );
     }
 
-    private String buildRegistrationStatusMessage(Activity activity, RegistrationStatus status) {
-        return switch (status) {
+    private void notifyParticipantsForActivityUpdated(Activity activity) {
+        List<Long> participantIds = registrationRepository.findByActivityId(activity.getId()).stream()
+                .filter(item -> OCCUPIED_STATUSES.contains(item.getStatus()) || item.getStatus() == RegistrationStatus.PENDING)
+                .map(ActivityRegistration::getUserId)
+                .distinct()
+                .toList();
+        if (participantIds.isEmpty()) {
+            return;
+        }
+        notificationService.notifyUsers(
+                participantIds,
+                "活动信息已更新",
+                "活动《" + activity.getTitle() + "》的信息已更新，请及时查看活动时间、地点和参与要求。"
+        );
+    }
+
+    private String buildRegistrationStatusMessage(Activity activity, RegistrationStatus status, String comment) {
+        String message = switch (status) {
             case APPROVED -> "你报名的活动《" + activity.getTitle() + "》已审核通过，请按时参加。";
             case REJECTED -> "你报名的活动《" + activity.getTitle() + "》未通过审核，请关注后续活动。";
             case CANCELLED -> "你在活动《" + activity.getTitle() + "》中的报名已被取消。";
             default -> "活动《" + activity.getTitle() + "》的报名状态已更新为 " + status + "。";
         };
+        if (comment == null || comment.isBlank()) {
+            return message;
+        }
+        return message + "处理说明：" + comment;
     }
 
     private String translateActivityStatus(ActivityStatus status) {
@@ -401,9 +526,34 @@ public class ActivityController {
             case DRAFT -> "草稿";
             case PUBLISHED -> "报名中";
             case ONGOING -> "进行中";
+            case OFFLINE -> "已下架";
             case FINISHED -> "已结束";
             case CANCELLED -> "已取消";
         };
+    }
+
+    private boolean hasActivityFilters(ActivityStatus status,
+                                       String keyword,
+                                       String location,
+                                       LocalDateTime startFrom,
+                                       LocalDateTime startTo) {
+        return status != null
+                || (keyword != null && !keyword.isBlank())
+                || (location != null && !location.isBlank())
+                || startFrom != null
+                || startTo != null;
+    }
+
+    private String normalizeFilter(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String normalizeComment(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value.trim();
+    }
+
+    private String nullToDash(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 
     private void ensureCanManageActivity(User currentUser, Activity activity) {
@@ -429,10 +579,36 @@ public class ActivityController {
             LocalDateTime startTime,
             @NotNull(message = "结束时间不能为空")
             LocalDateTime endTime,
+            LocalDateTime registrationDeadline,
+            @Size(max = 1000, message = "参与要求最多1000字")
+            String participationRequirement,
             @NotNull(message = "人数上限不能为空")
             @Min(value = 1, message = "人数上限至少1人")
             Integer maxParticipants,
             ActivityStatus status
+    ) {
+    }
+
+    public record UpdateActivityRequest(
+            @NotBlank(message = "活动标题不能为空")
+            @Size(max = 120, message = "活动标题最多120字")
+            String title,
+            @NotBlank(message = "活动描述不能为空")
+            @Size(max = 1000, message = "活动描述最多1000字")
+            String description,
+            @NotBlank(message = "活动地点不能为空")
+            @Size(max = 200, message = "活动地点最多200字")
+            String location,
+            @NotNull(message = "开始时间不能为空")
+            LocalDateTime startTime,
+            @NotNull(message = "结束时间不能为空")
+            LocalDateTime endTime,
+            LocalDateTime registrationDeadline,
+            @Size(max = 1000, message = "参与要求最多1000字")
+            String participationRequirement,
+            @NotNull(message = "人数上限不能为空")
+            @Min(value = 1, message = "人数上限至少1人")
+            Integer maxParticipants
     ) {
     }
 
@@ -441,7 +617,15 @@ public class ActivityController {
 
     public record UpdateRegistrationStatusRequest(
             @NotNull(message = "报名状态不能为空")
-            RegistrationStatus status
+            RegistrationStatus status,
+            @Size(max = 500, message = "审核说明最多500字")
+            String comment
+    ) {
+    }
+
+    public record CancelRegistrationRequest(
+            @Size(max = 500, message = "取消原因最多500字")
+            String reason
     ) {
     }
 
@@ -451,6 +635,8 @@ public class ActivityController {
                                    String location,
                                    LocalDateTime startTime,
                                    LocalDateTime endTime,
+                                   LocalDateTime registrationDeadline,
+                                   String participationRequirement,
                                    Integer maxParticipants,
                                    Long registeredCount,
                                    ActivityStatus status,
@@ -463,6 +649,8 @@ public class ActivityController {
                     activity.getLocation(),
                     activity.getStartTime(),
                     activity.getEndTime(),
+                    activity.getRegistrationDeadline(),
+                    activity.getParticipationRequirement(),
                     activity.getMaxParticipants(),
                     registeredCount,
                     activity.getStatus(),
@@ -479,7 +667,9 @@ public class ActivityController {
                                          RegistrationStatus status,
                                          LocalDateTime registeredAt,
                                          LocalDateTime checkInAt,
-                                         LocalDateTime checkOutAt) {
+                                         LocalDateTime checkOutAt,
+                                         String reviewComment,
+                                         LocalDateTime reviewedAt) {
         static MyRegistrationResponse from(ActivityRegistration registration, Activity activity) {
             String title = activity == null ? "未知活动" : activity.getTitle();
             LocalDateTime start = activity == null ? null : activity.getStartTime();
@@ -493,7 +683,9 @@ public class ActivityController {
                     registration.getStatus(),
                     registration.getRegisteredAt(),
                     registration.getCheckInAt(),
-                    registration.getCheckOutAt()
+                    registration.getCheckOutAt(),
+                    registration.getReviewComment(),
+                    registration.getReviewedAt()
             );
         }
     }
@@ -504,6 +696,8 @@ public class ActivityController {
                                                RegistrationStatus status,
                                                LocalDateTime registeredAt,
                                                LocalDateTime checkInAt,
-                                               LocalDateTime checkOutAt) {
+                                               LocalDateTime checkOutAt,
+                                               String reviewComment,
+                                               LocalDateTime reviewedAt) {
     }
 }

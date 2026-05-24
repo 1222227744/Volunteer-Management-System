@@ -16,6 +16,19 @@
           <p class="muted">报名于：{{ formatDate(item.registeredAt) }}</p>
           <p v-if="item.checkInAt" class="muted">签到时间：{{ formatDate(item.checkInAt) }}</p>
           <p v-if="item.checkOutAt" class="muted">签退时间：{{ formatDate(item.checkOutAt) }}</p>
+          <p v-if="item.reviewComment" class="muted">处理说明：{{ item.reviewComment }}</p>
+          <p v-if="item.reviewedAt" class="muted">处理时间：{{ formatDate(item.reviewedAt) }}</p>
+          <div v-if="canCancel(item)" class="card" style="margin-top: 12px;">
+            <div class="field">
+              <label>取消报名原因</label>
+              <input v-model.trim="cancelForms[item.activityId].reason" placeholder="可选，用于告知组织方取消原因" />
+            </div>
+            <div class="stack" style="margin-top: 10px;">
+              <button class="btn danger" @click="cancelRegistration(item.activityId)">
+                取消报名
+              </button>
+            </div>
+          </div>
           <div v-if="item.status === 'COMPLETED'" class="card" style="margin-top: 12px;">
             <template v-if="feedbackMap[item.activityId]">
               <div class="stack" style="justify-content: space-between;">
@@ -67,6 +80,7 @@ import { formatRegistrationStatus } from "../utils/labels";
 const registrations = ref([]);
 const feedbackMap = reactive({});
 const feedbackForms = reactive({});
+const cancelForms = reactive({});
 const message = ref("");
 const messageType = ref("success");
 
@@ -84,6 +98,18 @@ function ensureFeedbackForm(activityId) {
   }
 }
 
+function ensureCancelForm(activityId) {
+  if (!cancelForms[activityId]) {
+    cancelForms[activityId] = {
+      reason: ""
+    };
+  }
+}
+
+function canCancel(item) {
+  return item.status === "PENDING" || item.status === "APPROVED";
+}
+
 async function loadFeedbacks() {
   const data = await activityFeedbackApi.my();
   for (const key of Object.keys(feedbackMap)) {
@@ -98,8 +124,26 @@ async function loadData() {
   registrations.value = await activityApi.myRegistrations();
   registrations.value.forEach((item) => {
     ensureFeedbackForm(item.activityId);
+    ensureCancelForm(item.activityId);
   });
   await loadFeedbacks();
+}
+
+async function cancelRegistration(activityId) {
+  message.value = "";
+  const form = cancelForms[activityId];
+  try {
+    await activityApi.cancelRegistration(activityId, form?.reason || "");
+    messageType.value = "success";
+    message.value = "报名已取消";
+    if (form) {
+      form.reason = "";
+    }
+    await loadData();
+  } catch (err) {
+    messageType.value = "error";
+    message.value = err.message;
+  }
 }
 
 async function submitFeedback(activityId) {
