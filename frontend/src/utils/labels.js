@@ -72,6 +72,17 @@ export const honorTypeLabels = {
   SPECIAL_CONTRIBUTION: "特殊贡献"
 };
 
+export const externalNotificationChannelLabels = {
+  EMAIL: "邮件",
+  SMS: "短信"
+};
+
+export const externalNotificationStatusLabels = {
+  PENDING: "待发送",
+  SENT: "已发送",
+  FAILED: "发送失败"
+};
+
 export function formatActivityStatus(status) {
   return activityStatusLabels[status] || status || "-";
 }
@@ -110,4 +121,12 @@ export function formatDonationOrderStatus(status) {
 
 export function formatHonorType(type) {
   return honorTypeLabels[type] || type || "-";
+}
+
+export function formatExternalNotificationChannel(channel) {
+  return externalNotificationChannelLabels[channel] || channel || "-";
+}
+
+export function formatExternalNotificationStatus(status) {
+  return externalNotificationStatusLabels[status] || status || "-";
 }

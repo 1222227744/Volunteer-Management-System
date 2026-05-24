@@ -212,6 +212,21 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_026",
                     "补充公开荣誉时间索引",
                     "sql/migrations/V3_026__add_honor_public_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_027",
+                    "创建外部通知任务表",
+                    "sql/migrations/V3_027__create_external_notification_tasks.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_028",
+                    "补充外部通知状态时间索引",
+                    "sql/migrations/V3_028__add_external_notification_status_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_029",
+                    "补充外部通知用户时间索引",
+                    "sql/migrations/V3_029__add_external_notification_user_index.sql"
             )
     );
 
@@ -288,6 +303,9 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_024" -> decideTableMigration("honor_records");
             case "V3_025" -> decideIndexMigration("honor_records", "idx_honor_records_user_awarded_at");
             case "V3_026" -> decideIndexMigration("honor_records", "idx_honor_records_public_awarded_at");
+            case "V3_027" -> decideTableMigration("external_notification_tasks");
+            case "V3_028" -> decideIndexMigration("external_notification_tasks", "idx_external_notification_tasks_status_created_at");
+            case "V3_029" -> decideIndexMigration("external_notification_tasks", "idx_external_notification_tasks_user_created_at");
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }

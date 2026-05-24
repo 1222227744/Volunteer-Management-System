@@ -171,7 +171,7 @@ class ActivityControllerTest {
         private String lastContent;
 
         RecordingNotificationService() {
-            super(null, null, null);
+            super(null, null, null, null);
         }
 
         @Override

@@ -201,6 +201,22 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at DATETIME NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS external_notification_tasks (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  channel VARCHAR(20) NOT NULL,
+  title VARCHAR(120) NOT NULL,
+  content VARCHAR(1000) NOT NULL,
+  recipient VARCHAR(200) NULL,
+  status VARCHAR(20) NOT NULL,
+  retry_count INT NOT NULL,
+  max_retries INT NOT NULL,
+  last_error VARCHAR(1000) NULL,
+  created_at DATETIME NOT NULL,
+  last_tried_at DATETIME NULL,
+  sent_at DATETIME NULL
+);
+
 CREATE TABLE IF NOT EXISTS audit_logs (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   operator_id BIGINT NOT NULL,
@@ -229,5 +245,7 @@ CREATE INDEX idx_file_assets_uploader_created_at ON file_assets (uploader_id, cr
 CREATE INDEX idx_honor_records_user_awarded_at ON honor_records (user_id, awarded_at);
 CREATE INDEX idx_honor_records_public_awarded_at ON honor_records (public_visible, awarded_at);
 CREATE INDEX idx_notifications_user_read_created_at ON notifications (user_id, read_flag, created_at);
+CREATE INDEX idx_external_notification_tasks_status_created_at ON external_notification_tasks (status, created_at);
+CREATE INDEX idx_external_notification_tasks_user_created_at ON external_notification_tasks (user_id, created_at);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
 CREATE INDEX idx_audit_logs_action_created_at ON audit_logs (action, created_at);

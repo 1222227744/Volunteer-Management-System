@@ -146,6 +146,15 @@ export const notificationApi = {
     apiRequest(`/api/notifications/${id}/read`, {
       method: "PATCH"
     }),
+  externalTasks: () => apiRequest("/api/notifications/external-tasks"),
+  retryExternalTask: (taskId) =>
+    apiRequest(`/api/notifications/external-tasks/${taskId}/retry`, {
+      method: "POST"
+    }),
+  retryFailedExternalTasks: () =>
+    apiRequest("/api/notifications/external-tasks/retry-failed", {
+      method: "POST"
+    }),
   websocketUrl: (token) => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     return `${protocol}//${window.location.host}/ws/notifications?token=${encodeURIComponent(token)}`;

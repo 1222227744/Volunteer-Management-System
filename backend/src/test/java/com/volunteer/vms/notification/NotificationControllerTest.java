@@ -26,12 +26,18 @@ class NotificationControllerTest {
     @Mock
     private NotificationRepository notificationRepository;
 
+    @Mock
+    private ExternalNotificationTaskRepository externalTaskRepository;
+
+    private ExternalNotificationService externalNotificationService;
+
     private NotificationController controller;
     private MockHttpServletRequest request;
 
     @BeforeEach
     void setUp() {
-        controller = new NotificationController(notificationRepository);
+        externalNotificationService = new ExternalNotificationService(externalTaskRepository, null);
+        controller = new NotificationController(notificationRepository, externalTaskRepository, externalNotificationService);
 
         User user = new User();
         user.setId(5L);

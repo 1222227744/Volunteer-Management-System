@@ -1,0 +1,2 @@
+CREATE INDEX idx_external_notification_tasks_status_created_at
+ON external_notification_tasks (status, created_at);
