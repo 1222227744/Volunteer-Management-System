@@ -183,6 +183,12 @@ a {
   font-size: 12px;
 }
 
+.profile-card {
+  position: relative;
+  margin-top: 12px;
+  background: rgba(247, 255, 252, 0.94);
+}
+
 .page-wrap {
   width: min(1240px, calc(100vw - 28px));
   margin: 18px auto 28px;

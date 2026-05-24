@@ -10,6 +10,11 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(100) NOT NULL,
   display_name VARCHAR(50) NOT NULL,
   role VARCHAR(20) NOT NULL,
+  phone VARCHAR(30) NULL,
+  service_intention VARCHAR(500) NULL,
+  account_status VARCHAR(20) NOT NULL DEFAULT 'ENABLED',
+  verification_status VARCHAR(20) NOT NULL DEFAULT 'UNVERIFIED',
+  verification_comment VARCHAR(500) NULL,
   points INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL
 );

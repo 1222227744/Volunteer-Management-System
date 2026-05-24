@@ -2,6 +2,7 @@ package com.volunteer.vms.auth;
 
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.user.AccountStatus;
 import com.volunteer.vms.user.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,6 +35,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
         Optional<User> userOptional = tokenSessionService.resolveUser(token);
         User user = userOptional.orElseThrow(() -> new BizException(HttpStatus.UNAUTHORIZED, "登录态已失效，请重新登录"));
+        if (user.getAccountStatus() != AccountStatus.ENABLED) {
+            throw new BizException(HttpStatus.FORBIDDEN, "账号当前不可用，请联系管理员");
+        }
         request.setAttribute(AuthUtils.CURRENT_USER_ATTR, user);
         return true;
     }

@@ -23,6 +23,19 @@ export const roleLabels = {
   ADMIN: "管理员"
 };
 
+export const accountStatusLabels = {
+  ENABLED: "正常",
+  DISABLED: "已停用",
+  LOCKED: "已锁定"
+};
+
+export const verificationStatusLabels = {
+  UNVERIFIED: "未认证",
+  PENDING: "待审核",
+  VERIFIED: "已认证",
+  REJECTED: "认证未通过"
+};
+
 export function formatActivityStatus(status) {
   return activityStatusLabels[status] || status || "-";
 }
@@ -33,4 +46,12 @@ export function formatRegistrationStatus(status) {
 
 export function formatRole(role) {
   return roleLabels[role] || role || "-";
+}
+
+export function formatAccountStatus(status) {
+  return accountStatusLabels[status] || status || "-";
+}
+
+export function formatVerificationStatus(status) {
+  return verificationStatusLabels[status] || status || "-";
 }

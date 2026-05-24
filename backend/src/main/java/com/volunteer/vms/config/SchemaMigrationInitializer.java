@@ -102,6 +102,31 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_004",
                     "补充报名审核时间字段",
                     "sql/migrations/V3_004__add_registration_reviewed_at.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_005",
+                    "补充用户联系电话字段",
+                    "sql/migrations/V3_005__add_user_phone.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_006",
+                    "补充用户服务意向字段",
+                    "sql/migrations/V3_006__add_user_service_intention.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_007",
+                    "补充用户账号状态字段",
+                    "sql/migrations/V3_007__add_user_account_status.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_008",
+                    "补充用户实名审核状态字段",
+                    "sql/migrations/V3_008__add_user_verification_status.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_009",
+                    "补充用户实名审核说明字段",
+                    "sql/migrations/V3_009__add_user_verification_comment.sql"
             )
     );
 
@@ -156,6 +181,11 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_002" -> decideColumnMigration("activities", "participation_requirement");
             case "V3_003" -> decideColumnMigration("activity_registrations", "review_comment");
             case "V3_004" -> decideColumnMigration("activity_registrations", "reviewed_at");
+            case "V3_005" -> decideColumnMigration("users", "phone");
+            case "V3_006" -> decideColumnMigration("users", "service_intention");
+            case "V3_007" -> decideColumnMigration("users", "account_status");
+            case "V3_008" -> decideColumnMigration("users", "verification_status");
+            case "V3_009" -> decideColumnMigration("users", "verification_comment");
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }

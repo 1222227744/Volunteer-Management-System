@@ -83,10 +83,25 @@ export const activityApi = {
 export const userApi = {
   ranking: () => apiRequest("/api/users/ranking"),
   list: () => apiRequest("/api/users"),
+  updateMyProfile: (payload) =>
+    apiRequest("/api/users/me/profile", {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    }),
   updateRole: (userId, role) =>
     apiRequest(`/api/users/${userId}/role`, {
       method: "PATCH",
       body: JSON.stringify({ role })
+    }),
+  updateAccountStatus: (userId, accountStatus) =>
+    apiRequest(`/api/users/${userId}/account-status`, {
+      method: "PATCH",
+      body: JSON.stringify({ accountStatus })
+    }),
+  updateVerification: (userId, verificationStatus, comment = "") =>
+    apiRequest(`/api/users/${userId}/verification`, {
+      method: "PATCH",
+      body: JSON.stringify({ verificationStatus, comment })
     })
 };
 

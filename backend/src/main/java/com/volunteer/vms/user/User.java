@@ -29,6 +29,23 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    @Column(length = 30)
+    private String phone;
+
+    @Column(length = 500)
+    private String serviceIntention;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private AccountStatus accountStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private VerificationStatus verificationStatus;
+
+    @Column(length = 500)
+    private String verificationComment;
+
     @Column(nullable = false)
     private Integer points;
 
@@ -39,6 +56,12 @@ public class User {
     public void prePersist() {
         if (points == null) {
             points = 0;
+        }
+        if (accountStatus == null) {
+            accountStatus = AccountStatus.ENABLED;
+        }
+        if (verificationStatus == null) {
+            verificationStatus = VerificationStatus.UNVERIFIED;
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
@@ -83,6 +106,46 @@ public class User {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getServiceIntention() {
+        return serviceIntention;
+    }
+
+    public void setServiceIntention(String serviceIntention) {
+        this.serviceIntention = serviceIntention;
+    }
+
+    public AccountStatus getAccountStatus() {
+        return accountStatus;
+    }
+
+    public void setAccountStatus(AccountStatus accountStatus) {
+        this.accountStatus = accountStatus;
+    }
+
+    public VerificationStatus getVerificationStatus() {
+        return verificationStatus;
+    }
+
+    public void setVerificationStatus(VerificationStatus verificationStatus) {
+        this.verificationStatus = verificationStatus;
+    }
+
+    public String getVerificationComment() {
+        return verificationComment;
+    }
+
+    public void setVerificationComment(String verificationComment) {
+        this.verificationComment = verificationComment;
     }
 
     public Integer getPoints() {

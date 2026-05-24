@@ -27,6 +27,7 @@ import com.volunteer.vms.service.ServiceRecordRepository;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
 import com.volunteer.vms.user.UserRepository;
+import com.volunteer.vms.user.VerificationStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -120,19 +121,43 @@ public class DemoDataInitializer implements CommandLineRunner {
 
     private Map<String, User> seedUsers() {
         Map<String, User> users = new HashMap<>();
-        users.put("admin", ensureUser("admin", "admin123", "系统管理员", Role.ADMIN, 320));
-        users.put("organizer", ensureUser("organizer", "organizer123", "组织方账号", Role.ORGANIZER, 180));
-        users.put("liu", ensureUser("liuqi", "volunteer123", "刘琪", Role.VOLUNTEER, 96));
-        users.put("chen", ensureUser("chenmo", "volunteer123", "陈墨", Role.VOLUNTEER, 132));
-        users.put("lin", ensureUser("linan", "volunteer123", "林安", Role.VOLUNTEER, 68));
-        users.put("zhao", ensureUser("zhaowei", "volunteer123", "赵薇", Role.VOLUNTEER, 110));
-        users.put("sun", ensureUser("sunhao", "volunteer123", "孙昊", Role.VOLUNTEER, 42));
+        users.put("admin", ensureUser("admin", "admin123", "系统管理员", Role.ADMIN, 320, "13800000001", "平台运营与审计管理", VerificationStatus.VERIFIED));
+        users.put("organizer", ensureUser("organizer", "organizer123", "组织方账号", Role.ORGANIZER, 180, "13800000002", "社区公益活动组织", VerificationStatus.VERIFIED));
+        users.put("liu", ensureUser("liuqi", "volunteer123", "刘琪", Role.VOLUNTEER, 96, "13800000003", "校园迎新、秩序维护、活动宣传", VerificationStatus.PENDING));
+        users.put("chen", ensureUser("chenmo", "volunteer123", "陈墨", Role.VOLUNTEER, 132, "13800000004", "环保清洁、社区陪伴", VerificationStatus.VERIFIED));
+        users.put("lin", ensureUser("linan", "volunteer123", "林安", Role.VOLUNTEER, 68, "13800000005", "儿童阅读陪伴、图书整理", VerificationStatus.VERIFIED));
+        users.put("zhao", ensureUser("zhaowei", "volunteer123", "赵薇", Role.VOLUNTEER, 110, "13800000006", "环保宣传、现场引导", VerificationStatus.VERIFIED));
+        users.put("sun", ensureUser("sunhao", "volunteer123", "孙昊", Role.VOLUNTEER, 42, "13800000007", "物资搬运、后勤支持", VerificationStatus.REJECTED));
         return users;
     }
 
-    private User ensureUser(String username, String rawPassword, String displayName, Role role, int points) {
+    private User ensureUser(String username,
+                            String rawPassword,
+                            String displayName,
+                            Role role,
+                            int points,
+                            String phone,
+                            String serviceIntention,
+                            VerificationStatus verificationStatus) {
         User existing = userRepository.findByUsername(username).orElse(null);
         if (existing != null) {
+            boolean changed = false;
+            if (existing.getPhone() == null) {
+                existing.setPhone(phone);
+                changed = true;
+            }
+            if (existing.getServiceIntention() == null) {
+                existing.setServiceIntention(serviceIntention);
+                changed = true;
+            }
+            if (existing.getVerificationStatus() == null || existing.getVerificationStatus() == VerificationStatus.UNVERIFIED) {
+                existing.setVerificationStatus(verificationStatus);
+                existing.setVerificationComment(verificationStatus == VerificationStatus.REJECTED ? "演示数据：资料信息不完整。" : null);
+                changed = true;
+            }
+            if (changed) {
+                return userRepository.save(existing);
+            }
             return existing;
         }
         User user = new User();
@@ -141,6 +166,10 @@ public class DemoDataInitializer implements CommandLineRunner {
         user.setDisplayName(displayName);
         user.setRole(role);
         user.setPoints(points);
+        user.setPhone(phone);
+        user.setServiceIntention(serviceIntention);
+        user.setVerificationStatus(verificationStatus);
+        user.setVerificationComment(verificationStatus == VerificationStatus.REJECTED ? "演示数据：资料信息不完整。" : null);
         return userRepository.save(user);
     }
 

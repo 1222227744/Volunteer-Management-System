@@ -4,6 +4,7 @@ import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.user.AccountStatus;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
 import com.volunteer.vms.user.UserRepository;
@@ -70,6 +71,9 @@ public class AuthController {
                 .orElseThrow(() -> new BizException(HttpStatus.UNAUTHORIZED, "用户名或密码错误"));
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BizException(HttpStatus.UNAUTHORIZED, "用户名或密码错误");
+        }
+        if (user.getAccountStatus() != AccountStatus.ENABLED) {
+            throw new BizException(HttpStatus.FORBIDDEN, "账号当前不可登录，请联系管理员");
         }
         String token = tokenSessionService.createToken(user);
         auditLogService.log(
@@ -138,14 +142,28 @@ public class AuthController {
     ) {
     }
 
-    public record UserProfileResponse(Long id, String username, String displayName, Role role, Integer points) {
+    public record UserProfileResponse(Long id,
+                                      String username,
+                                      String displayName,
+                                      Role role,
+                                      Integer points,
+                                      String phone,
+                                      String serviceIntention,
+                                      AccountStatus accountStatus,
+                                      com.volunteer.vms.user.VerificationStatus verificationStatus,
+                                      String verificationComment) {
         static UserProfileResponse from(User user) {
             return new UserProfileResponse(
                     user.getId(),
                     user.getUsername(),
                     user.getDisplayName(),
                     user.getRole(),
-                    user.getPoints()
+                    user.getPoints(),
+                    user.getPhone(),
+                    user.getServiceIntention(),
+                    user.getAccountStatus(),
+                    user.getVerificationStatus(),
+                    user.getVerificationComment()
             );
         }
     }
