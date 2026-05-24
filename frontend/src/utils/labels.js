@@ -58,6 +58,14 @@ export const matchStatusLabels = {
   CANCELLED: "已取消"
 };
 
+export const donationOrderStatusLabels = {
+  PENDING: "待支付",
+  PAID: "支付成功",
+  FAILED: "支付失败",
+  CANCELLED: "已取消",
+  CLOSED: "已关闭"
+};
+
 export function formatActivityStatus(status) {
   return activityStatusLabels[status] || status || "-";
 }
@@ -88,4 +96,8 @@ export function formatNeedStatus(status) {
 
 export function formatMatchStatus(status) {
   return matchStatusLabels[status] || status || "-";
+}
+
+export function formatDonationOrderStatus(status) {
+  return donationOrderStatusLabels[status] || status || "-";
 }

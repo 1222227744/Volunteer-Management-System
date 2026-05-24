@@ -91,9 +91,23 @@ CREATE TABLE IF NOT EXISTS donations (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   donor_name VARCHAR(50) NOT NULL,
   user_id BIGINT NOT NULL,
+  order_id BIGINT NULL,
   amount DECIMAL(10,2) NOT NULL,
   message VARCHAR(500) NULL,
   created_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS donation_orders (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  donor_name VARCHAR(50) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  message VARCHAR(500) NULL,
+  status VARCHAR(20) NOT NULL,
+  callback_token VARCHAR(64) NOT NULL,
+  payment_note VARCHAR(500) NULL,
+  created_at DATETIME NOT NULL,
+  paid_at DATETIME NULL
 );
 
 CREATE TABLE IF NOT EXISTS feedbacks (
@@ -175,6 +189,8 @@ CREATE INDEX idx_feedbacks_user_created_at ON feedbacks (user_id, created_at);
 CREATE INDEX idx_public_resources_status_created_at ON public_resources (status, created_at);
 CREATE INDEX idx_help_needs_status_created_at ON help_needs (status, created_at);
 CREATE INDEX idx_resource_matches_status_created_at ON resource_matches (status, created_at);
+CREATE INDEX idx_donation_orders_user_created_at ON donation_orders (user_id, created_at);
+CREATE INDEX idx_donation_orders_status_created_at ON donation_orders (status, created_at);
 CREATE INDEX idx_notifications_user_read_created_at ON notifications (user_id, read_flag, created_at);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
 CREATE INDEX idx_audit_logs_action_created_at ON audit_logs (action, created_at);

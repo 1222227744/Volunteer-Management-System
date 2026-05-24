@@ -165,6 +165,17 @@ export const donationApi = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
+  createOrder: (payload) =>
+    apiRequest("/api/donations/orders", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  myOrders: () => apiRequest("/api/donations/orders/my"),
+  simulatePayment: (orderId, payload) =>
+    apiRequest(`/api/donations/orders/${orderId}/simulate-payment`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
   my: () => apiRequest("/api/donations/my"),
   all: () => apiRequest("/api/donations")
 };

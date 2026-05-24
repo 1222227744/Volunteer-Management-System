@@ -147,6 +147,26 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_013",
                     "补充资源对接查询索引",
                     "sql/migrations/V3_013__add_resource_indexes.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_014",
+                    "补充捐赠记录订单关联字段",
+                    "sql/migrations/V3_014__add_donation_order_id.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_015",
+                    "创建捐赠订单表",
+                    "sql/migrations/V3_015__create_donation_orders.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_016",
+                    "补充捐赠订单用户时间索引",
+                    "sql/migrations/V3_016__add_donation_order_indexes.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_017",
+                    "补充捐赠订单状态时间索引",
+                    "sql/migrations/V3_017__add_donation_order_status_index.sql"
             )
     );
 
@@ -210,6 +230,10 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_011" -> decideTableMigration("help_needs");
             case "V3_012" -> decideTableMigration("resource_matches");
             case "V3_013" -> decideResourceIndexMigration();
+            case "V3_014" -> decideColumnMigration("donations", "order_id");
+            case "V3_015" -> decideTableMigration("donation_orders");
+            case "V3_016" -> decideIndexMigration("donation_orders", "idx_donation_orders_user_created_at");
+            case "V3_017" -> decideIndexMigration("donation_orders", "idx_donation_orders_status_created_at");
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }

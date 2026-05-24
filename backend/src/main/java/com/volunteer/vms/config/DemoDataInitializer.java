@@ -14,6 +14,9 @@ import com.volunteer.vms.content.ContentPost;
 import com.volunteer.vms.content.ContentPostRepository;
 import com.volunteer.vms.content.ContentStatus;
 import com.volunteer.vms.donation.Donation;
+import com.volunteer.vms.donation.DonationOrder;
+import com.volunteer.vms.donation.DonationOrderRepository;
+import com.volunteer.vms.donation.DonationOrderStatus;
 import com.volunteer.vms.donation.DonationRepository;
 import com.volunteer.vms.feedback.ActivityFeedback;
 import com.volunteer.vms.feedback.ActivityFeedbackRepository;
@@ -68,6 +71,7 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final ContentPostRepository contentPostRepository;
     private final AnnouncementRepository announcementRepository;
     private final DonationRepository donationRepository;
+    private final DonationOrderRepository donationOrderRepository;
     private final ActivityFeedbackRepository activityFeedbackRepository;
     private final FeedbackRepository feedbackRepository;
     private final NotificationRepository notificationRepository;
@@ -85,6 +89,7 @@ public class DemoDataInitializer implements CommandLineRunner {
                                ContentPostRepository contentPostRepository,
                                AnnouncementRepository announcementRepository,
                                DonationRepository donationRepository,
+                               DonationOrderRepository donationOrderRepository,
                                ActivityFeedbackRepository activityFeedbackRepository,
                                FeedbackRepository feedbackRepository,
                                NotificationRepository notificationRepository,
@@ -101,6 +106,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         this.contentPostRepository = contentPostRepository;
         this.announcementRepository = announcementRepository;
         this.donationRepository = donationRepository;
+        this.donationOrderRepository = donationOrderRepository;
         this.activityFeedbackRepository = activityFeedbackRepository;
         this.feedbackRepository = feedbackRepository;
         this.notificationRepository = notificationRepository;
@@ -409,14 +415,46 @@ public class DemoDataInitializer implements CommandLineRunner {
     }
 
     private void seedDonations(Map<String, User> users) {
-        saveDonation(users.get("liu"), "刘琪", new BigDecimal("50.00"), "支持迎新志愿者饮水补给");
-        saveDonation(users.get("chen"), "陈墨", new BigDecimal("88.00"), "用于环保活动物资采购");
-        saveDonation(users.get("organizer"), "组织方账号", new BigDecimal("200.00"), "补充社区活动宣传展板费用");
+        DonationOrder paidLiu = saveDonationOrder(users.get("liu"), "刘琪", new BigDecimal("50.00"),
+                "支持迎新志愿者饮水补给", DonationOrderStatus.PAID, "演示订单：支付成功", LocalDateTime.now().minusDays(2));
+        DonationOrder paidChen = saveDonationOrder(users.get("chen"), "陈墨", new BigDecimal("88.00"),
+                "用于环保活动物资采购", DonationOrderStatus.PAID, "演示订单：支付成功", LocalDateTime.now().minusDays(1));
+        DonationOrder pending = saveDonationOrder(users.get("lin"), "林安", new BigDecimal("30.00"),
+                "待演示模拟支付的订单", DonationOrderStatus.PENDING, null, null);
+        saveDonationOrder(users.get("sun"), "孙昊", new BigDecimal("20.00"),
+                "演示订单：支付失败不生成捐赠记录", DonationOrderStatus.FAILED, "银行卡余额不足", null);
+
+        saveDonation(users.get("liu"), paidLiu.getId(), "刘琪", new BigDecimal("50.00"), "支持迎新志愿者饮水补给");
+        saveDonation(users.get("chen"), paidChen.getId(), "陈墨", new BigDecimal("88.00"), "用于环保活动物资采购");
+        saveDonation(users.get("organizer"), null, "组织方账号", new BigDecimal("200.00"), "补充社区活动宣传展板费用");
+
+        log.debug("已生成待支付演示订单，id={}, callbackToken={}", pending.getId(), pending.getCallbackToken());
     }
 
-    private void saveDonation(User user, String donorName, BigDecimal amount, String message) {
+    private DonationOrder saveDonationOrder(User user,
+                                            String donorName,
+                                            BigDecimal amount,
+                                            String message,
+                                            DonationOrderStatus status,
+                                            String paymentNote,
+                                            LocalDateTime paidAt) {
+        DonationOrder order = new DonationOrder();
+        order.setCreatedAt(LocalDateTime.now().minusDays(status == DonationOrderStatus.PAID ? 3 : 1));
+        order.setUserId(user.getId());
+        order.setDonorName(donorName);
+        order.setAmount(amount);
+        order.setMessage(message);
+        order.setStatus(status);
+        order.setCallbackToken("demo-" + user.getUsername() + "-" + status.name().toLowerCase());
+        order.setPaymentNote(paymentNote);
+        order.setPaidAt(paidAt);
+        return donationOrderRepository.save(order);
+    }
+
+    private void saveDonation(User user, Long orderId, String donorName, BigDecimal amount, String message) {
         Donation donation = new Donation();
         donation.setUserId(user.getId());
+        donation.setOrderId(orderId);
         donation.setDonorName(donorName);
         donation.setAmount(amount);
         donation.setMessage(message);

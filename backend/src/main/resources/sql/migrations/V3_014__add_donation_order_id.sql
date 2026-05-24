@@ -1,0 +1,2 @@
+ALTER TABLE donations
+  ADD COLUMN order_id BIGINT NULL;
