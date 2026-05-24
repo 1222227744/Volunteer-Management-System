@@ -127,6 +127,26 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_009",
                     "补充用户实名审核说明字段",
                     "sql/migrations/V3_009__add_user_verification_comment.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_010",
+                    "创建公益资源表",
+                    "sql/migrations/V3_010__create_public_resources.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_011",
+                    "创建帮扶需求表",
+                    "sql/migrations/V3_011__create_help_needs.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_012",
+                    "创建资源匹配表",
+                    "sql/migrations/V3_012__create_resource_matches.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_013",
+                    "补充资源对接查询索引",
+                    "sql/migrations/V3_013__add_resource_indexes.sql"
             )
     );
 
@@ -186,6 +206,10 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_007" -> decideColumnMigration("users", "account_status");
             case "V3_008" -> decideColumnMigration("users", "verification_status");
             case "V3_009" -> decideColumnMigration("users", "verification_comment");
+            case "V3_010" -> decideTableMigration("public_resources");
+            case "V3_011" -> decideTableMigration("help_needs");
+            case "V3_012" -> decideTableMigration("resource_matches");
+            case "V3_013" -> decideResourceIndexMigration();
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }
@@ -317,6 +341,25 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             return baseline(columnName + " 字段已存在");
         }
         return execute("缺少 " + columnName + " 字段");
+    }
+
+    private MigrationDecision decideTableMigration(String tableName) {
+        if (tableExists(tableName)) {
+            return baseline(tableName + " 表已存在");
+        }
+        return execute("缺少 " + tableName + " 表");
+    }
+
+    private MigrationDecision decideResourceIndexMigration() {
+        if (!tableExists("public_resources") || !tableExists("help_needs") || !tableExists("resource_matches")) {
+            return baseline("资源对接相关表尚未全部存在");
+        }
+        if (indexExists("public_resources", "idx_public_resources_status_created_at")
+                && indexExists("help_needs", "idx_help_needs_status_created_at")
+                && indexExists("resource_matches", "idx_resource_matches_status_created_at")) {
+            return baseline("资源对接索引已存在");
+        }
+        return execute("缺少资源对接查询索引");
     }
 
     private void ensureMigrationHistoryTable() {

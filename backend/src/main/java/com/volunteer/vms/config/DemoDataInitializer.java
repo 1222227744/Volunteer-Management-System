@@ -22,6 +22,15 @@ import com.volunteer.vms.feedback.FeedbackRepository;
 import com.volunteer.vms.feedback.FeedbackStatus;
 import com.volunteer.vms.notification.Notification;
 import com.volunteer.vms.notification.NotificationRepository;
+import com.volunteer.vms.resource.HelpNeed;
+import com.volunteer.vms.resource.HelpNeedRepository;
+import com.volunteer.vms.resource.MatchStatus;
+import com.volunteer.vms.resource.NeedStatus;
+import com.volunteer.vms.resource.PublicResource;
+import com.volunteer.vms.resource.PublicResourceRepository;
+import com.volunteer.vms.resource.ResourceMatch;
+import com.volunteer.vms.resource.ResourceMatchRepository;
+import com.volunteer.vms.resource.ResourceStatus;
 import com.volunteer.vms.service.ServiceRecord;
 import com.volunteer.vms.service.ServiceRecordRepository;
 import com.volunteer.vms.user.Role;
@@ -63,6 +72,9 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final FeedbackRepository feedbackRepository;
     private final NotificationRepository notificationRepository;
     private final AuditLogRepository auditLogRepository;
+    private final PublicResourceRepository publicResourceRepository;
+    private final HelpNeedRepository helpNeedRepository;
+    private final ResourceMatchRepository resourceMatchRepository;
     private final PasswordEncoder passwordEncoder;
     private final DemoDataProperties demoDataProperties;
 
@@ -77,6 +89,9 @@ public class DemoDataInitializer implements CommandLineRunner {
                                FeedbackRepository feedbackRepository,
                                NotificationRepository notificationRepository,
                                AuditLogRepository auditLogRepository,
+                               PublicResourceRepository publicResourceRepository,
+                               HelpNeedRepository helpNeedRepository,
+                               ResourceMatchRepository resourceMatchRepository,
                                PasswordEncoder passwordEncoder,
                                DemoDataProperties demoDataProperties) {
         this.userRepository = userRepository;
@@ -90,6 +105,9 @@ public class DemoDataInitializer implements CommandLineRunner {
         this.feedbackRepository = feedbackRepository;
         this.notificationRepository = notificationRepository;
         this.auditLogRepository = auditLogRepository;
+        this.publicResourceRepository = publicResourceRepository;
+        this.helpNeedRepository = helpNeedRepository;
+        this.resourceMatchRepository = resourceMatchRepository;
         this.passwordEncoder = passwordEncoder;
         this.demoDataProperties = demoDataProperties;
     }
@@ -114,6 +132,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         seedAnnouncements(users);
         seedDonations(users);
         seedFeedbacks(users);
+        seedResourceMatches(users);
         seedNotifications(users);
         seedAuditLogs(users, activities);
         log.info("演示数据初始化完成");
@@ -420,6 +439,84 @@ public class DemoDataInitializer implements CommandLineRunner {
             feedback.setResolvedAt(LocalDateTime.now().minusHours(8));
         }
         feedbackRepository.save(feedback);
+    }
+
+    private void seedResourceMatches(Map<String, User> users) {
+        if (publicResourceRepository.count() > 0 || helpNeedRepository.count() > 0 || resourceMatchRepository.count() > 0) {
+            return;
+        }
+        User organizer = users.get("organizer");
+        PublicResource masks = saveResource("医用口罩", "防护物资", "社区爱心企业", 300, "只",
+                "社区老人探访、线下活动防护", ResourceStatus.RESERVED, organizer.getId());
+        PublicResource books = saveResource("儿童绘本", "图书物资", "青禾书店", 80, "册",
+                "社区图书馆与儿童阅读活动", ResourceStatus.AVAILABLE, organizer.getId());
+        HelpNeed elderNeed = saveNeed("敬老院探访防护物资需求", "康乐敬老院",
+                "近期志愿者探访活动需要基础防护物资，用于现场发放和备用。", 120, "只",
+                "康乐敬老院", LocalDateTime.now().plusDays(4), NeedStatus.MATCHED, organizer.getId());
+        saveNeed("社区儿童阅读角补充图书", "青禾社区",
+                "社区阅读角希望补充适合小学低年级儿童阅读的绘本和科普读物。", 60, "册",
+                "青禾社区图书馆", LocalDateTime.now().plusDays(10), NeedStatus.OPEN, organizer.getId());
+        saveMatch(masks, elderNeed, 120, "已完成资源锁定，等待活动前统一发放。", MatchStatus.MATCHED, organizer.getId());
+        books.setStatus(ResourceStatus.AVAILABLE);
+        publicResourceRepository.save(books);
+    }
+
+    private PublicResource saveResource(String name,
+                                        String category,
+                                        String source,
+                                        int quantity,
+                                        String unit,
+                                        String availableScope,
+                                        ResourceStatus status,
+                                        Long createdBy) {
+        PublicResource resource = new PublicResource();
+        resource.setName(name);
+        resource.setCategory(category);
+        resource.setSource(source);
+        resource.setQuantity(quantity);
+        resource.setUnit(unit);
+        resource.setAvailableScope(availableScope);
+        resource.setStatus(status);
+        resource.setCreatedBy(createdBy);
+        return publicResourceRepository.save(resource);
+    }
+
+    private HelpNeed saveNeed(String title,
+                              String requester,
+                              String content,
+                              int quantity,
+                              String unit,
+                              String location,
+                              LocalDateTime requiredAt,
+                              NeedStatus status,
+                              Long createdBy) {
+        HelpNeed need = new HelpNeed();
+        need.setTitle(title);
+        need.setRequester(requester);
+        need.setContent(content);
+        need.setQuantity(quantity);
+        need.setUnit(unit);
+        need.setLocation(location);
+        need.setRequiredAt(requiredAt);
+        need.setStatus(status);
+        need.setCreatedBy(createdBy);
+        return helpNeedRepository.save(need);
+    }
+
+    private void saveMatch(PublicResource resource,
+                           HelpNeed need,
+                           int allocatedQuantity,
+                           String progressNote,
+                           MatchStatus status,
+                           Long createdBy) {
+        ResourceMatch match = new ResourceMatch();
+        match.setResourceId(resource.getId());
+        match.setNeedId(need.getId());
+        match.setAllocatedQuantity(allocatedQuantity);
+        match.setProgressNote(progressNote);
+        match.setStatus(status);
+        match.setCreatedBy(createdBy);
+        resourceMatchRepository.save(match);
     }
 
     private void seedNotifications(Map<String, User> users) {

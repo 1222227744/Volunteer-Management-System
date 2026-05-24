@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS public_resources (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  category VARCHAR(60) NOT NULL,
+  source VARCHAR(120) NOT NULL,
+  quantity INT NOT NULL,
+  unit VARCHAR(40) NULL,
+  available_scope VARCHAR(200) NULL,
+  status VARCHAR(20) NOT NULL,
+  created_by BIGINT NOT NULL,
+  created_at DATETIME NOT NULL
+);

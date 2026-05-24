@@ -106,6 +106,45 @@ CREATE TABLE IF NOT EXISTS feedbacks (
   resolved_at DATETIME NULL
 );
 
+CREATE TABLE IF NOT EXISTS public_resources (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(120) NOT NULL,
+  category VARCHAR(60) NOT NULL,
+  source VARCHAR(120) NOT NULL,
+  quantity INT NOT NULL,
+  unit VARCHAR(40) NULL,
+  available_scope VARCHAR(200) NULL,
+  status VARCHAR(20) NOT NULL,
+  created_by BIGINT NOT NULL,
+  created_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS help_needs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(120) NOT NULL,
+  requester VARCHAR(120) NOT NULL,
+  content VARCHAR(1000) NOT NULL,
+  quantity INT NOT NULL,
+  unit VARCHAR(40) NULL,
+  location VARCHAR(200) NOT NULL,
+  required_at DATETIME NULL,
+  status VARCHAR(20) NOT NULL,
+  created_by BIGINT NOT NULL,
+  created_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS resource_matches (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  resource_id BIGINT NOT NULL,
+  need_id BIGINT NOT NULL,
+  allocated_quantity INT NOT NULL,
+  progress_note VARCHAR(500) NULL,
+  status VARCHAR(20) NOT NULL,
+  created_by BIGINT NOT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NULL
+);
+
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
@@ -133,6 +172,9 @@ CREATE INDEX idx_registrations_activity_status ON activity_registrations (activi
 CREATE INDEX idx_registrations_user_registered_at ON activity_registrations (user_id, registered_at);
 CREATE INDEX idx_service_records_user_created_at ON service_records (user_id, created_at);
 CREATE INDEX idx_feedbacks_user_created_at ON feedbacks (user_id, created_at);
+CREATE INDEX idx_public_resources_status_created_at ON public_resources (status, created_at);
+CREATE INDEX idx_help_needs_status_created_at ON help_needs (status, created_at);
+CREATE INDEX idx_resource_matches_status_created_at ON resource_matches (status, created_at);
 CREATE INDEX idx_notifications_user_read_created_at ON notifications (user_id, read_flag, created_at);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
 CREATE INDEX idx_audit_logs_action_created_at ON audit_logs (action, created_at);

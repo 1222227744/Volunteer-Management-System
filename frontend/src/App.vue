@@ -48,6 +48,7 @@
         <RouterLink to="/contents">内容发布</RouterLink>
         <RouterLink to="/donations">捐赠</RouterLink>
         <RouterLink to="/feedbacks">反馈</RouterLink>
+        <RouterLink v-if="canManage" to="/resources">资源对接</RouterLink>
         <RouterLink to="/ranking">排行榜</RouterLink>
         <RouterLink to="/announcements">公告</RouterLink>
         <RouterLink to="/notifications">通知</RouterLink>

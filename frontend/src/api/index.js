@@ -184,6 +184,30 @@ export const feedbackApi = {
     })
 };
 
+export const resourceApi = {
+  board: () => apiRequest("/api/resources"),
+  createResource: (payload) =>
+    apiRequest("/api/resources", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  createNeed: (payload) =>
+    apiRequest("/api/resources/needs", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  createMatch: (payload) =>
+    apiRequest("/api/resources/matches", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  updateMatchStatus: (matchId, payload) =>
+    apiRequest(`/api/resources/matches/${matchId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    })
+};
+
 export const activityFeedbackApi = {
   submit: (payload) =>
     apiRequest("/api/activity-feedbacks", {

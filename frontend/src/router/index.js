@@ -61,6 +61,12 @@ const routes = [
     component: () => import("../views/FeedbacksView.vue")
   },
   {
+    path: "/resources",
+    name: "resources",
+    component: () => import("../views/ResourcesView.vue"),
+    meta: { roles: ["ADMIN", "ORGANIZER"] }
+  },
+  {
     path: "/announcements",
     name: "announcements",
     component: () => import("../views/AnnouncementsView.vue")
