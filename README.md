@@ -15,17 +15,17 @@
 
 本仓库当前以以下源文档作为最新需求与设计基线：
 
-- `软件需求规格说明书_2026-v1.1.docx/.pdf`
+- `软件需求规格说明书_2026-v1.2 / v1.3`
 - `概要设计v1.docx/.pdf`
 - `志愿者管理系统_可行性分析报告(V2.0).docx/.pdf`
 
 仓库中的 `README.md`、`系统设计说明书.md`、`需求实现对应矩阵.md` 和后续新增的迭代计划文档，负责把这些源文档与当前代码实现同步起来。
 
-当前代码库对应第二次迭代阶段的课程版系统：
+当前代码库对应第三次迭代阶段的 v3 系统：
 
-- 已具备核心业务主链，可直接演示注册、活动、报名、签到签退、服务记录、内容审核、公告通知、反馈、捐赠、统计和审计。
-- `v2` 已补齐活动状态联动、用户级通知已读、基础活动评价、组织方数据边界和真实审计分页导出。
-- 当前剩余工作主要集中在文档回填、数据库迁移治理标准化和自动化测试覆盖。
+- 已具备核心业务主链，可直接演示注册、活动、报名审核、自助签到签退、服务记录、内容审核、公告通知、反馈、资源对接、捐赠、统计和审计。
+- `v3` 已补齐 JWT 登录态、Axios 客户端、文件上传审计、模拟支付回调、WebSocket 站内通知、外部通知任务、异常考勤更正、统计导出、系统配置和故障处理记录。
+- 当前剩余工作主要集中在真实第三方服务接入、标准迁移框架替换和更高覆盖率自动化测试。
 
 ## 1. 技术栈
 
@@ -34,11 +34,12 @@
 - `Vue 3`
 - `Vite`
 - `Vue Router`
+- `Axios`
 
 说明：
 
 - 当前前端代码使用 `JavaScript` 编写。
-- 当前实现未引入 `TypeScript`、`Pinia`、`Element Plus`、`Axios` 和 `ECharts`。
+- 当前实现未引入 `TypeScript`、`Pinia`、`Element Plus` 和 `ECharts`。
 - 前端通过 `/api` 调用后端接口。
 
 ### 后端
@@ -108,7 +109,7 @@ Copy-Item backend/.env.example backend/.env
 然后编辑 `backend/.env`，至少改这几个值：
 
 ```env
-SPRING_DATASOURCE_URL=jdbc:mysql://127.0.0.1:3306/volunteer_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8
+SPRING_DATASOURCE_URL=jdbc:mysql://127.0.0.1:3306/volunteer_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8mb4
 SPRING_DATASOURCE_USERNAME=root
 SPRING_DATASOURCE_PASSWORD=你的MySQL密码
 ```
@@ -157,9 +158,9 @@ SOURCE D:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEnginee
 
 说明：
 
-- 当前 `application.yml` 仍配置 `ddl-auto=update`，用于开发环境兼容建表。
-- `v2` 新增了 `backend/src/main/resources/sql/migrations/` 版本化迁移脚本，以及启动期 `schema_migrations` 历史登记。
-- 如果你已经手动执行了 `init.sql`，后端会在现有结构基础上结合迁移兼容逻辑继续运行。
+- 当前 `application.yml` 默认配置 `ddl-auto=none`，数据库结构由 `init.sql` 和 `sql/migrations/` 中的版本化脚本管理。
+- 空库首次启动时，后端会自动执行 `backend/src/main/resources/sql/init.sql` 初始化基础表结构。
+- 已有库启动时，后端会通过 `schema_migrations` 历史表登记迁移脚本，并按兼容判定补齐缺失字段、表和索引。
 
 ## 5. 启动步骤
 
@@ -190,7 +191,14 @@ npm run dev
 
 ### 5.3 登录系统
 
-如果你启用了默认账号初始化，系统首次启动会自动创建：
+默认情况下不会自动创建账号或导入演示数据。课程演示时，可在 `backend/.env` 中打开：
+
+```env
+VMS_BOOTSTRAP_ENABLED=true
+VMS_DEMO_DATA_ENABLED=true
+```
+
+启用默认账号初始化后，系统首次启动会自动创建：
 
 - 管理员：`admin / admin123`
 - 组织方：`organizer / organizer123`
@@ -299,7 +307,8 @@ npm run build
 - `SPRING_DATASOURCE_URL`：数据库连接串
 - `SPRING_DATASOURCE_USERNAME`：数据库用户名
 - `SPRING_DATASOURCE_PASSWORD`：数据库密码
-- `VMS_BOOTSTRAP_ENABLED`：是否自动初始化默认账号
+- `SPRING_JPA_HIBERNATE_DDL_AUTO`：Hibernate DDL 策略，默认 `none`
+- `VMS_BOOTSTRAP_ENABLED`：是否自动初始化默认账号，默认 `false`
 - `VMS_BOOTSTRAP_ADMIN_*`：默认管理员信息
 - `VMS_BOOTSTRAP_ORGANIZER_*`：默认组织方信息
 
@@ -328,7 +337,7 @@ npm run build
 - 提供了 Nginx 反向代理示例
 - 登录页取消了写死的默认账号密码预填
 - `.gitignore` 已忽略真实 `.env` 文件，避免泄露本机密码
-- 已补充需求实现对应矩阵、演示数据初始化、数据库兼容迁移、版本化迁移脚本和默认账号昵称纠偏
+- 已补充需求实现对应矩阵、可选演示数据初始化、数据库兼容迁移、版本化迁移脚本、默认账号昵称纠偏、JWT 登录态和 Axios 客户端
 
 ## 11. 常见问题
 
@@ -350,8 +359,7 @@ npm run build
 
 ### 11.3 登录后提示登录态失效
 
-当前项目的登录态是应用内维护的，后端重启后旧 token 会失效。  
-这属于当前版本的设计结果，重新登录即可。
+当前项目使用 JWT 登录态。若后端修改了 `VMS_JWT_SECRET`、token 过期，或用户账号被停用/锁定，前端会清理本地登录状态，需要重新登录。
 
 ### 11.4 局域网访问不到
 
@@ -364,18 +372,18 @@ npm run build
 
 ## 12. 建议的下一步
 
-当前仓库已经进入第二次迭代收口阶段，建议优先按 [第二次迭代范围与目标.md](./docs/第二次迭代范围与目标.md) 继续推进。
+当前仓库已经进入第三次迭代收口阶段，建议优先按 [第三次迭代范围与目标.md](./docs/第三次迭代范围与目标.md) 做验收走查。
 
 本轮剩余优先事项建议如下：
 
 1. 继续同步旧文档和最新概要设计，避免说明文档与代码口径再次漂移。
-2. 补齐高价值自动化测试，覆盖通知、活动状态、评价、审计筛选等关键回归点。
-3. 在轻量迁移治理基础上，继续评估是否切换到标准迁移框架。
-4. 视课程展示需求，再决定是否扩展附件、异常更正和更细粒度治理能力。
+2. 补齐高价值自动化测试，覆盖通知、活动状态、评价、审计筛选、支付回调和迁移兼容等关键回归点。
+3. 在轻量迁移治理基础上，继续评估是否切换到 Flyway 或 Liquibase。
+4. 若课程展示需要真实外部集成，再接入真实 SMTP、短信服务、支付网关和对象存储。
 
-以下内容保留为后续扩展，而不是第二次迭代强制范围：
+以下内容保留为后续扩展，而不是 v3 强制范围：
 
-- `Redis/JWT` 登录态升级
-- 短信、邮件、真实支付接口
-- 通用文件上传与对象存储
+- `Redis` 或数据库持久会话
+- 真实短信、真实邮件、真实支付接口
+- 第三方对象存储和更细粒度文件访问策略
 - 独立“支持者/捐赠者”账号体系

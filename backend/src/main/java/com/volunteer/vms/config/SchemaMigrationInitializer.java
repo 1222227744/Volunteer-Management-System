@@ -275,10 +275,23 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        ensureBaseSchema();
         ensureMigrationHistoryTable();
         for (MigrationDefinition migration : MIGRATIONS) {
             applyMigration(migration);
         }
+    }
+
+    private void ensureBaseSchema() {
+        if (tableExists("users") && tableExists("activities") && tableExists("activity_registrations")) {
+            return;
+        }
+        if (tableExists("users") || tableExists("activities") || tableExists("activity_registrations")) {
+            log.warn("检测到数据库基础表不完整，未自动执行 init.sql；请人工核对当前库结构后再启动");
+            return;
+        }
+        executeScript("sql/init.sql");
+        log.info("检测到空数据库，已执行 sql/init.sql 初始化基础表结构");
     }
 
     private void applyMigration(MigrationDefinition migration) {
