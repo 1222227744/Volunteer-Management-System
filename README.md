@@ -282,7 +282,7 @@ npm run build
 说明：
 
 - 后端和前端都应作为本轮交付前的基础验证项执行。
-- 数据库结构治理说明见 [数据库迁移方案.md](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/数据库迁移方案.md)。
+- 数据库结构治理以 `backend/src/main/resources/sql/init.sql` 和 `backend/src/main/resources/sql/migrations/` 中的实际脚本为准。
 
 ## 9. 环境文件说明
 
@@ -364,7 +364,7 @@ npm run build
 
 ## 12. 建议的下一步
 
-当前仓库已经进入第二次迭代收口阶段，建议优先按 [第二次迭代范围与目标.md](./第二次迭代范围与目标.md) 和 [数据库迁移方案.md](./数据库迁移方案.md) 继续推进。
+当前仓库已经进入第二次迭代收口阶段，建议优先按 [第二次迭代范围与目标.md](./docs/第二次迭代范围与目标.md) 继续推进。
 
 本轮剩余优先事项建议如下：
 

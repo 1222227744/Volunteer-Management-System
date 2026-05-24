@@ -15,6 +15,11 @@ target/
 Thumbs.db
 .DS_Store
 
+# Office / temp files
+~$*.docx
+~WRL*.tmp
+*.tmp
+
 # Node
 node_modules/
 dist/
