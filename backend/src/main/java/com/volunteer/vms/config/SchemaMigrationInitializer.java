@@ -227,6 +227,26 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_029",
                     "补充外部通知用户时间索引",
                     "sql/migrations/V3_029__add_external_notification_user_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_030",
+                    "补充活动签到码字段",
+                    "sql/migrations/V3_030__add_activity_check_code.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_031",
+                    "创建活动考勤更正记录表",
+                    "sql/migrations/V3_031__create_activity_attendance_corrections.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_032",
+                    "补充活动考勤更正查询索引",
+                    "sql/migrations/V3_032__add_attendance_correction_indexes.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_033",
+                    "规范化活动签到码数据",
+                    "sql/migrations/V3_033__normalize_activity_check_code.sql"
             )
     );
 
@@ -306,6 +326,10 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_027" -> decideTableMigration("external_notification_tasks");
             case "V3_028" -> decideIndexMigration("external_notification_tasks", "idx_external_notification_tasks_status_created_at");
             case "V3_029" -> decideIndexMigration("external_notification_tasks", "idx_external_notification_tasks_user_created_at");
+            case "V3_030" -> decideColumnMigration("activities", "check_code");
+            case "V3_031" -> decideTableMigration("activity_attendance_corrections");
+            case "V3_032" -> decideAttendanceCorrectionIndexMigration();
+            case "V3_033" -> decideActivityCheckCodeNormalizeMigration();
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }
@@ -456,6 +480,43 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             return baseline("资源对接索引已存在");
         }
         return execute("缺少资源对接查询索引");
+    }
+
+    private MigrationDecision decideAttendanceCorrectionIndexMigration() {
+        if (!tableExists("activity_attendance_corrections")) {
+            return baseline("activity_attendance_corrections 表尚不存在");
+        }
+        if (indexExists("activity_attendance_corrections", "idx_attendance_corrections_activity_corrected")
+                && indexExists("activity_attendance_corrections", "idx_attendance_corrections_registration_corrected")) {
+            return baseline("活动考勤更正索引已存在");
+        }
+        return execute("缺少活动考勤更正查询索引");
+    }
+
+    private MigrationDecision decideActivityCheckCodeNormalizeMigration() {
+        if (!tableExists("activities")) {
+            return baseline("activities 表尚不存在");
+        }
+        if (!columnExists("activities", "check_code")) {
+            return blocked("activities.check_code 字段尚不存在，请先执行 V3_030");
+        }
+        Integer missingCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM activities WHERE check_code IS NULL OR check_code = ''",
+                Integer.class
+        );
+        String nullable = queryForString(
+                """
+                SELECT IS_NULLABLE
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'activities'
+                  AND COLUMN_NAME = 'check_code'
+                """
+        );
+        if ((missingCount == null || missingCount == 0) && "NO".equalsIgnoreCase(nullable)) {
+            return baseline("活动签到码已回填且字段非空");
+        }
+        return execute("活动签到码存在空值或字段仍允许为空");
     }
 
     private void ensureMigrationHistoryTable() {

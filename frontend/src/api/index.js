@@ -69,9 +69,29 @@ export const activityApi = {
     apiRequest(`/api/activities/${activityId}/check-in/${userId}`, {
       method: "POST"
     }),
+  selfCheckIn: (activityId, checkCode) =>
+    apiRequest(`/api/activities/${activityId}/self-check-in`, {
+      method: "POST",
+      body: JSON.stringify({ checkCode })
+    }),
   checkOut: (activityId, userId) =>
     apiRequest(`/api/activities/${activityId}/check-out/${userId}`, {
       method: "POST"
+    }),
+  selfCheckOut: (activityId, checkCode) =>
+    apiRequest(`/api/activities/${activityId}/self-check-out`, {
+      method: "POST",
+      body: JSON.stringify({ checkCode })
+    }),
+  refreshCheckCode: (activityId) =>
+    apiRequest(`/api/activities/${activityId}/check-code/refresh`, {
+      method: "POST"
+    }),
+  attendanceCorrections: (activityId) => apiRequest(`/api/activities/${activityId}/attendance-corrections`),
+  correctAttendance: (activityId, payload) =>
+    apiRequest(`/api/activities/${activityId}/attendance-corrections`, {
+      method: "POST",
+      body: JSON.stringify(payload)
     }),
   updateStatus: (activityId, status) =>
     apiRequest(`/api/activities/${activityId}/status`, {

@@ -18,6 +18,37 @@
           <p v-if="item.checkOutAt" class="muted">签退时间：{{ formatDate(item.checkOutAt) }}</p>
           <p v-if="item.reviewComment" class="muted">处理说明：{{ item.reviewComment }}</p>
           <p v-if="item.reviewedAt" class="muted">处理时间：{{ formatDate(item.reviewedAt) }}</p>
+          <div v-if="canSelfAttend(item)" class="card" style="margin-top: 12px;">
+            <h3>自助签到签退</h3>
+            <p class="muted">请输入现场组织方提供的签到码，系统会校验报名状态后记录签到或签退时间。</p>
+            <div class="grid two">
+              <div class="field">
+                <label>签到码</label>
+                <input v-model.trim="attendanceForms[item.activityId].checkCode" placeholder="例如：A1B2C3D4" />
+              </div>
+              <div class="field">
+                <label>当前可执行操作</label>
+                <select v-model="attendanceForms[item.activityId].action">
+                  <option v-if="item.status === 'APPROVED'" value="CHECK_IN">自助签到</option>
+                  <option v-if="item.status === 'CHECKED_IN'" value="CHECK_OUT">自助签退</option>
+                </select>
+              </div>
+            </div>
+            <div class="stack" style="margin-top: 10px;">
+              <button class="btn primary" @click="submitSelfAttendance(item)">
+                {{ item.status === "APPROVED" ? "确认签到" : "确认签退" }}
+              </button>
+            </div>
+          </div>
+          <div v-if="item.corrections?.length" class="card" style="margin-top: 12px;">
+            <strong>考勤更正记录</strong>
+            <p v-for="correction in item.corrections" :key="correction.id" class="muted" style="margin: 6px 0 0;">
+              {{ formatDate(correction.correctedAt) }}，
+              {{ correction.correctedByName }}执行“{{ formatAttendanceCorrectionAction(correction.action) }}”，
+              {{ formatRegistrationStatus(correction.beforeStatus) }} -> {{ formatRegistrationStatus(correction.afterStatus) }}，
+              原因：{{ correction.reason }}
+            </p>
+          </div>
           <div v-if="canCancel(item)" class="card" style="margin-top: 12px;">
             <div class="field">
               <label>取消报名原因</label>
@@ -75,12 +106,13 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue";
 import { activityApi, activityFeedbackApi } from "../api";
-import { formatRegistrationStatus } from "../utils/labels";
+import { formatAttendanceCorrectionAction, formatRegistrationStatus } from "../utils/labels";
 
 const registrations = ref([]);
 const feedbackMap = reactive({});
 const feedbackForms = reactive({});
 const cancelForms = reactive({});
+const attendanceForms = reactive({});
 const message = ref("");
 const messageType = ref("success");
 
@@ -106,8 +138,24 @@ function ensureCancelForm(activityId) {
   }
 }
 
+function ensureAttendanceForm(item) {
+  const action = item.status === "CHECKED_IN" ? "CHECK_OUT" : "CHECK_IN";
+  if (!attendanceForms[item.activityId]) {
+    attendanceForms[item.activityId] = {
+      checkCode: "",
+      action
+    };
+  } else {
+    attendanceForms[item.activityId].action = action;
+  }
+}
+
 function canCancel(item) {
   return item.status === "PENDING" || item.status === "APPROVED";
+}
+
+function canSelfAttend(item) {
+  return item.status === "APPROVED" || item.status === "CHECKED_IN";
 }
 
 async function loadFeedbacks() {
@@ -125,8 +173,34 @@ async function loadData() {
   registrations.value.forEach((item) => {
     ensureFeedbackForm(item.activityId);
     ensureCancelForm(item.activityId);
+    ensureAttendanceForm(item);
   });
   await loadFeedbacks();
+}
+
+async function submitSelfAttendance(item) {
+  message.value = "";
+  const form = attendanceForms[item.activityId];
+  if (!form?.checkCode) {
+    messageType.value = "error";
+    message.value = "请填写签到码";
+    return;
+  }
+  try {
+    if (item.status === "APPROVED") {
+      await activityApi.selfCheckIn(item.activityId, form.checkCode);
+      message.value = "自助签到成功";
+    } else {
+      await activityApi.selfCheckOut(item.activityId, form.checkCode);
+      message.value = "自助签退成功";
+    }
+    messageType.value = "success";
+    form.checkCode = "";
+    await loadData();
+  } catch (err) {
+    messageType.value = "error";
+    message.value = err.message;
+  }
 }
 
 async function cancelRegistration(activityId) {

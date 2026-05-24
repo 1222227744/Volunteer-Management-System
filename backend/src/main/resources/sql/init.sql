@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS activities (
   attachment_file_id BIGINT NULL,
   max_participants INT NOT NULL,
   status VARCHAR(20) NOT NULL,
+  check_code VARCHAR(32) NOT NULL,
   organizer_id BIGINT NOT NULL,
   created_at DATETIME NOT NULL
 );
@@ -46,6 +47,24 @@ CREATE TABLE IF NOT EXISTS activity_registrations (
   review_comment VARCHAR(500) NULL,
   reviewed_at DATETIME NULL,
   CONSTRAINT uk_registration_activity_user UNIQUE (activity_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS activity_attendance_corrections (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  activity_id BIGINT NOT NULL,
+  registration_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  action VARCHAR(30) NOT NULL,
+  before_status VARCHAR(20) NOT NULL,
+  after_status VARCHAR(20) NOT NULL,
+  before_check_in_at DATETIME NULL,
+  after_check_in_at DATETIME NULL,
+  before_check_out_at DATETIME NULL,
+  after_check_out_at DATETIME NULL,
+  reason VARCHAR(500) NOT NULL,
+  corrected_by BIGINT NOT NULL,
+  corrected_by_name VARCHAR(50) NOT NULL,
+  corrected_at DATETIME NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS service_records (
@@ -233,6 +252,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 CREATE INDEX idx_activities_organizer_status ON activities (organizer_id, status);
 CREATE INDEX idx_registrations_activity_status ON activity_registrations (activity_id, status);
 CREATE INDEX idx_registrations_user_registered_at ON activity_registrations (user_id, registered_at);
+CREATE INDEX idx_attendance_corrections_activity_corrected ON activity_attendance_corrections (activity_id, corrected_at);
+CREATE INDEX idx_attendance_corrections_registration_corrected ON activity_attendance_corrections (registration_id, corrected_at);
 CREATE INDEX idx_service_records_user_created_at ON service_records (user_id, created_at);
 CREATE INDEX idx_feedbacks_user_created_at ON feedbacks (user_id, created_at);
 CREATE INDEX idx_public_resources_status_created_at ON public_resources (status, created_at);

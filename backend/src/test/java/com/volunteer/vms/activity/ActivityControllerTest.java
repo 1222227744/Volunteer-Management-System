@@ -57,6 +57,7 @@ class ActivityControllerTest {
         controller = new ActivityController(
                 activityRepository,
                 registrationRepository,
+                null,
                 userRepository,
                 notificationService,
                 auditLogService,

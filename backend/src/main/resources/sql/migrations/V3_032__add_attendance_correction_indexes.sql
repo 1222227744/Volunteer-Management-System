@@ -1,0 +1,5 @@
+CREATE INDEX idx_attendance_corrections_activity_corrected
+ON activity_attendance_corrections (activity_id, corrected_at);
+
+CREATE INDEX idx_attendance_corrections_registration_corrected
+ON activity_attendance_corrections (registration_id, corrected_at);

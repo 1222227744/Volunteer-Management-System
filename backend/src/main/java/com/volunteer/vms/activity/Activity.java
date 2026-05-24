@@ -3,6 +3,8 @@ package com.volunteer.vms.activity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.UUID;
 
 /**
  * 核心实体：对应 SRS FR-02 的志愿活动主数据。
@@ -44,6 +46,9 @@ public class Activity {
     @Column(nullable = false, length = 20)
     private ActivityStatus status;
 
+    @Column(length = 32)
+    private String checkCode;
+
     @Column(nullable = false)
     private Long organizerId;
 
@@ -54,6 +59,9 @@ public class Activity {
     public void prePersist() {
         if (status == null) {
             status = ActivityStatus.PUBLISHED;
+        }
+        if (checkCode == null || checkCode.isBlank()) {
+            checkCode = UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase(Locale.ROOT);
         }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
@@ -146,6 +154,14 @@ public class Activity {
 
     public void setStatus(ActivityStatus status) {
         this.status = status;
+    }
+
+    public String getCheckCode() {
+        return checkCode;
+    }
+
+    public void setCheckCode(String checkCode) {
+        this.checkCode = checkCode;
     }
 
     public Long getOrganizerId() {

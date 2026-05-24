@@ -83,6 +83,15 @@ export const externalNotificationStatusLabels = {
   FAILED: "发送失败"
 };
 
+export const attendanceCorrectionActionLabels = {
+  SET_APPROVED: "恢复为已通过",
+  SET_CHECKED_IN: "更正为已签到",
+  SET_CHECKED_OUT: "更正为已签退",
+  CLEAR_CHECK_IN: "清除签到",
+  CLEAR_CHECK_OUT: "清除签退",
+  SET_CANCELLED: "更正为已取消"
+};
+
 export function formatActivityStatus(status) {
   return activityStatusLabels[status] || status || "-";
 }
@@ -129,4 +138,8 @@ export function formatExternalNotificationChannel(channel) {
 
 export function formatExternalNotificationStatus(status) {
   return externalNotificationStatusLabels[status] || status || "-";
+}
+
+export function formatAttendanceCorrectionAction(action) {
+  return attendanceCorrectionActionLabels[action] || action || "-";
 }
