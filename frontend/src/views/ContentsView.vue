@@ -19,9 +19,14 @@
           <label>正文</label>
           <textarea v-model.trim="submitForm.content" placeholder="填写成果内容"></textarea>
         </div>
+        <div class="field" style="margin-top: 10px;">
+          <label>展示图片（jpg、jpeg、png、gif）</label>
+          <input type="file" accept=".jpg,.jpeg,.png,.gif,image/*" @change="uploadImage" />
+          <p v-if="imageName" class="muted">已上传：{{ imageName }}</p>
+        </div>
         <div class="stack" style="margin-top: 12px;">
-          <button class="btn primary" :disabled="submitting" @click="submitContent">
-            {{ submitting ? "提交中..." : "提交审核" }}
+          <button class="btn primary" :disabled="submitting || uploading" @click="submitContent">
+            {{ submitting || uploading ? "处理中..." : "提交审核" }}
           </button>
         </div>
       </div>
@@ -36,6 +41,7 @@
                 <span class="tag">{{ item.status }}</span>
               </div>
               <p class="muted">{{ item.content }}</p>
+              <button v-if="item.imageFileId" class="btn ghost" @click="downloadFile(item.imageFileId)">查看图片</button>
               <p class="muted">提交时间：{{ formatDate(item.createdAt) }}</p>
               <p v-if="item.reviewComment" class="muted">审核意见：{{ item.reviewComment }}</p>
             </article>
@@ -52,6 +58,7 @@
                 <span class="tag">{{ item.status }}</span>
               </div>
               <p class="muted">{{ item.content }}</p>
+              <button v-if="item.imageFileId" class="btn ghost" @click="downloadFile(item.imageFileId)">查看图片</button>
               <p class="muted">审核时间：{{ formatDate(item.reviewedAt) }}</p>
             </article>
             <p v-if="!approvedContents.length" class="notice">暂无已通过内容。</p>
@@ -68,6 +75,7 @@
               <span class="tag">{{ item.status }}</span>
             </div>
             <p class="muted">{{ item.content }}</p>
+            <button v-if="item.imageFileId" class="btn ghost" @click="downloadFile(item.imageFileId)">查看图片</button>
             <div class="field">
               <label>审核意见</label>
               <textarea v-model.trim="reviewComments[item.id]" placeholder="可填写通过/驳回原因"></textarea>
@@ -86,7 +94,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { contentApi } from "../api";
+import { contentApi, fileApi } from "../api";
 import { authState } from "../stores/auth";
 
 // 展示层：对应 SRS FR-06 内容投稿、审核和成果展示。
@@ -96,12 +104,15 @@ const pendingContents = ref([]);
 const reviewComments = reactive({});
 
 const submitting = ref(false);
+const uploading = ref(false);
 const message = ref("");
 const ok = ref(false);
+const imageName = ref("");
 
 const submitForm = reactive({
   title: "",
-  content: ""
+  content: "",
+  imageFileId: null
 });
 
 const canManage = computed(
@@ -111,6 +122,34 @@ const canManage = computed(
 function formatDate(raw) {
   if (!raw) return "-";
   return raw.replace("T", " ").slice(0, 16);
+}
+
+async function uploadImage(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  uploading.value = true;
+  message.value = "";
+  ok.value = false;
+  try {
+    const asset = await fileApi.upload({
+      file,
+      category: "IMAGE",
+      businessType: "CONTENT"
+    });
+    submitForm.imageFileId = asset.id;
+    imageName.value = asset.originalName;
+    ok.value = true;
+    message.value = "图片上传成功";
+  } catch (err) {
+    message.value = err.message;
+  } finally {
+    uploading.value = false;
+    event.target.value = "";
+  }
+}
+
+function downloadFile(fileId) {
+  fileApi.download(fileId, `content-${fileId}`);
 }
 
 async function loadData() {
@@ -136,6 +175,8 @@ async function submitContent() {
     await contentApi.submit({ ...submitForm });
     submitForm.title = "";
     submitForm.content = "";
+    submitForm.imageFileId = null;
+    imageName.value = "";
     ok.value = true;
     message.value = "提交成功，等待审核";
     await loadData();

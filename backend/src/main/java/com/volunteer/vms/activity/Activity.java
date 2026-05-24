@@ -35,6 +35,8 @@ public class Activity {
     @Column(length = 1000)
     private String participationRequirement;
 
+    private Long attachmentFileId;
+
     @Column(nullable = false)
     private Integer maxParticipants;
 
@@ -120,6 +122,14 @@ public class Activity {
 
     public void setParticipationRequirement(String participationRequirement) {
         this.participationRequirement = participationRequirement;
+    }
+
+    public Long getAttachmentFileId() {
+        return attachmentFileId;
+    }
+
+    public void setAttachmentFileId(Long attachmentFileId) {
+        this.attachmentFileId = attachmentFileId;
     }
 
     public Integer getMaxParticipants() {

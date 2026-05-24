@@ -167,6 +167,36 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_017",
                     "补充捐赠订单状态时间索引",
                     "sql/migrations/V3_017__add_donation_order_status_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_018",
+                    "创建文件审计表",
+                    "sql/migrations/V3_018__create_file_assets.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_019",
+                    "补充活动附件字段",
+                    "sql/migrations/V3_019__add_activity_attachment_file_id.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_020",
+                    "补充内容图片字段",
+                    "sql/migrations/V3_020__add_content_image_file_id.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_021",
+                    "补充服务证明文件字段",
+                    "sql/migrations/V3_021__add_service_record_evidence_file_id.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_022",
+                    "补充文件业务关联索引",
+                    "sql/migrations/V3_022__add_file_asset_business_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_023",
+                    "补充文件上传人索引",
+                    "sql/migrations/V3_023__add_file_asset_uploader_index.sql"
             )
     );
 
@@ -234,6 +264,12 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_015" -> decideTableMigration("donation_orders");
             case "V3_016" -> decideIndexMigration("donation_orders", "idx_donation_orders_user_created_at");
             case "V3_017" -> decideIndexMigration("donation_orders", "idx_donation_orders_status_created_at");
+            case "V3_018" -> decideTableMigration("file_assets");
+            case "V3_019" -> decideColumnMigration("activities", "attachment_file_id");
+            case "V3_020" -> decideColumnMigration("content_posts", "image_file_id");
+            case "V3_021" -> decideColumnMigration("service_records", "evidence_file_id");
+            case "V3_022" -> decideIndexMigration("file_assets", "idx_file_assets_business");
+            case "V3_023" -> decideIndexMigration("file_assets", "idx_file_assets_uploader_created_at");
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }

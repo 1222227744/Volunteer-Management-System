@@ -23,6 +23,8 @@ public class ContentPost {
     @Column(nullable = false, length = 4000)
     private String content;
 
+    private Long imageFileId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ContentStatus status;
@@ -75,6 +77,14 @@ public class ContentPost {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public Long getImageFileId() {
+        return imageFileId;
+    }
+
+    public void setImageFileId(Long imageFileId) {
+        this.imageFileId = imageFileId;
     }
 
     public ContentStatus getStatus() {

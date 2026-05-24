@@ -20,6 +20,10 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:50MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:55MB}
 
 vms:
   bootstrap:
@@ -32,3 +36,7 @@ vms:
     organizer-display-name: ${VMS_BOOTSTRAP_ORGANIZER_DISPLAY_NAME:组织方账号}
   demo-data:
     enabled: ${VMS_DEMO_DATA_ENABLED:true}
+  files:
+    storage-dir: ${VMS_FILE_STORAGE_DIR:./uploads}
+    image-max-bytes: ${VMS_FILE_IMAGE_MAX_BYTES:5242880}
+    attachment-max-bytes: ${VMS_FILE_ATTACHMENT_MAX_BYTES:52428800}

@@ -95,9 +95,14 @@
           <label>参与要求</label>
           <textarea v-model.trim="createForm.participationRequirement" placeholder="例如：需具备基础沟通能力，服从现场安排"></textarea>
         </div>
+        <div class="field" style="margin-top: 10px;">
+          <label>活动附件（pdf、docx、xlsx、pptx、zip、rar）</label>
+          <input type="file" @change="uploadCreateAttachment" />
+          <p v-if="createAttachmentName" class="muted">已上传：{{ createAttachmentName }}</p>
+        </div>
         <div class="stack" style="margin-top: 12px;">
-          <button class="btn primary" :disabled="creating" @click="createActivity">
-            {{ creating ? "发布中..." : "发布活动" }}
+          <button class="btn primary" :disabled="creating || uploading" @click="createActivity">
+            {{ creating || uploading ? "处理中..." : "发布活动" }}
           </button>
         </div>
       </div>
@@ -130,6 +135,10 @@
           </p>
           <p v-if="activity.participationRequirement" class="muted">
             参与要求：{{ activity.participationRequirement }}
+          </p>
+          <p v-if="activity.attachmentFileId" class="muted">
+            活动附件：
+            <button class="btn ghost" @click="downloadFile(activity.attachmentFileId)">查看附件</button>
           </p>
           <div class="stack" style="margin-top: 10px;">
             <button class="btn ghost" :disabled="registeringIds.has(activity.id) || !canRegister(activity)" @click="register(activity.id)">
@@ -179,9 +188,14 @@
               <label>参与要求</label>
               <textarea v-model.trim="editForm.participationRequirement"></textarea>
             </div>
+            <div class="field" style="margin-top: 10px;">
+              <label>活动附件（重新上传后替换）</label>
+              <input type="file" @change="uploadEditAttachment" />
+              <p v-if="editAttachmentName" class="muted">当前附件：{{ editAttachmentName }}</p>
+            </div>
             <div class="stack" style="margin-top: 12px;">
-              <button class="btn primary" :disabled="updating" @click="updateActivity(activity.id)">
-                {{ updating ? "保存中..." : "保存修改" }}
+              <button class="btn primary" :disabled="updating || uploading" @click="updateActivity(activity.id)">
+                {{ updating || uploading ? "处理中..." : "保存修改" }}
               </button>
               <button class="btn ghost" @click="cancelEdit">取消编辑</button>
             </div>
@@ -195,7 +209,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { activityApi } from "../api";
+import { activityApi, fileApi } from "../api";
 import { authState } from "../stores/auth";
 import { formatActivityStatus } from "../utils/labels";
 
@@ -203,10 +217,13 @@ import { formatActivityStatus } from "../utils/labels";
 const activities = ref([]);
 const creating = ref(false);
 const updating = ref(false);
+const uploading = ref(false);
 const message = ref("");
 const messageType = ref("success");
 const registeringIds = ref(new Set());
 const editingActivityId = ref(null);
+const createAttachmentName = ref("");
+const editAttachmentName = ref("");
 
 const createForm = reactive({
   title: "",
@@ -216,6 +233,7 @@ const createForm = reactive({
   endTime: "",
   registrationDeadline: "",
   participationRequirement: "",
+  attachmentFileId: null,
   maxParticipants: 20,
   status: "PUBLISHED"
 });
@@ -228,6 +246,7 @@ const editForm = reactive({
   endTime: "",
   registrationDeadline: "",
   participationRequirement: "",
+  attachmentFileId: null,
   maxParticipants: 20
 });
 
@@ -266,9 +285,47 @@ function buildActivityPayload(form) {
     endTime: toPayloadDateTime(form.endTime),
     registrationDeadline: toPayloadDateTime(form.registrationDeadline),
     participationRequirement: form.participationRequirement || null,
+    attachmentFileId: form.attachmentFileId || null,
     maxParticipants: Number(form.maxParticipants),
     status: form.status
   };
+}
+
+async function uploadActivityAttachment(event, targetForm, targetName) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  uploading.value = true;
+  message.value = "";
+  try {
+    const asset = await fileApi.upload({
+      file,
+      category: "ATTACHMENT",
+      businessType: "ACTIVITY",
+      businessId: editingActivityId.value || null
+    });
+    targetForm.attachmentFileId = asset.id;
+    targetName.value = asset.originalName;
+    messageType.value = "success";
+    message.value = "活动附件上传成功";
+  } catch (err) {
+    messageType.value = "error";
+    message.value = err.message;
+  } finally {
+    uploading.value = false;
+    event.target.value = "";
+  }
+}
+
+function uploadCreateAttachment(event) {
+  return uploadActivityAttachment(event, createForm, createAttachmentName);
+}
+
+function uploadEditAttachment(event) {
+  return uploadActivityAttachment(event, editForm, editAttachmentName);
+}
+
+function downloadFile(fileId) {
+  fileApi.download(fileId, `activity-${fileId}`);
 }
 
 function canRegister(activity) {
@@ -317,6 +374,8 @@ async function createActivity() {
     createForm.endTime = "";
     createForm.registrationDeadline = "";
     createForm.participationRequirement = "";
+    createForm.attachmentFileId = null;
+    createAttachmentName.value = "";
     createForm.maxParticipants = 20;
     createForm.status = "PUBLISHED";
     await loadActivities();
@@ -337,6 +396,8 @@ function startEdit(activity) {
   editForm.endTime = toInputDateTime(activity.endTime);
   editForm.registrationDeadline = toInputDateTime(activity.registrationDeadline);
   editForm.participationRequirement = activity.participationRequirement || "";
+  editForm.attachmentFileId = activity.attachmentFileId || null;
+  editAttachmentName.value = activity.attachmentFileId ? `文件ID ${activity.attachmentFileId}` : "";
   editForm.maxParticipants = activity.maxParticipants;
 }
 

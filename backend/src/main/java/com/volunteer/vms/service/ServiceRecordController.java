@@ -9,6 +9,7 @@ import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.file.FileStorageService;
 import com.volunteer.vms.notification.NotificationService;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
@@ -44,19 +45,22 @@ public class ServiceRecordController {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final AuditLogService auditLogService;
+    private final FileStorageService fileStorageService;
 
     public ServiceRecordController(ServiceRecordRepository serviceRecordRepository,
                                    ActivityRepository activityRepository,
                                    ActivityRegistrationRepository registrationRepository,
                                    UserRepository userRepository,
                                    NotificationService notificationService,
-                                   AuditLogService auditLogService) {
+                                   AuditLogService auditLogService,
+                                   FileStorageService fileStorageService) {
         this.serviceRecordRepository = serviceRecordRepository;
         this.activityRepository = activityRepository;
         this.registrationRepository = registrationRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.auditLogService = auditLogService;
+        this.fileStorageService = fileStorageService;
     }
 
     @PostMapping
@@ -86,7 +90,11 @@ public class ServiceRecordController {
         record.setHours(createRequest.hours().setScale(2, RoundingMode.HALF_UP));
         record.setAchievement(createRequest.achievement());
         record.setEvidenceUrl(createRequest.evidenceUrl());
-        serviceRecordRepository.save(record);
+        record.setEvidenceFileId(createRequest.evidenceFileId());
+        ServiceRecord savedRecord = serviceRecordRepository.save(record);
+        if (savedRecord.getEvidenceFileId() != null) {
+            fileStorageService.bindBusiness(savedRecord.getEvidenceFileId(), "SERVICE_RECORD", savedRecord.getId());
+        }
 
         registration.setStatus(RegistrationStatus.COMPLETED);
         registrationRepository.save(registration);
@@ -104,7 +112,7 @@ public class ServiceRecordController {
                 currentUser,
                 "SERVICE_RECORD_CREATED",
                 "SERVICE_RECORD",
-                record.getId(),
+                savedRecord.getId(),
                 "活动ID=" + createRequest.activityId() + ", 志愿者ID=" + createRequest.userId() + ", 时长=" + createRequest.hours()
         );
         return ApiResponse.success();
@@ -184,7 +192,8 @@ public class ServiceRecordController {
             @Size(max = 1000, message = "服务成果最多1000字")
             String achievement,
             @Size(max = 500, message = "证明链接最多500字")
-            String evidenceUrl
+            String evidenceUrl,
+            Long evidenceFileId
     ) {
     }
 
@@ -195,6 +204,7 @@ public class ServiceRecordController {
                                         BigDecimal hours,
                                         String achievement,
                                         String evidenceUrl,
+                                        Long evidenceFileId,
                                         LocalDateTime createdAt) {
         static ServiceRecordResponse from(ServiceRecord record, Activity activity) {
             return new ServiceRecordResponse(
@@ -205,6 +215,7 @@ public class ServiceRecordController {
                     record.getHours(),
                     record.getAchievement(),
                     record.getEvidenceUrl(),
+                    record.getEvidenceFileId(),
                     record.getCreatedAt()
             );
         }

@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS activities (
   end_time DATETIME NOT NULL,
   registration_deadline DATETIME NULL,
   participation_requirement VARCHAR(1000) NULL,
+  attachment_file_id BIGINT NULL,
   max_participants INT NOT NULL,
   status VARCHAR(20) NOT NULL,
   organizer_id BIGINT NOT NULL,
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS service_records (
   hours DECIMAL(6,2) NOT NULL,
   achievement VARCHAR(1000) NOT NULL,
   evidence_url VARCHAR(500) NULL,
+  evidence_file_id BIGINT NULL,
   created_at DATETIME NOT NULL,
   CONSTRAINT uk_service_record_activity_user UNIQUE (activity_id, user_id)
 );
@@ -73,6 +75,7 @@ CREATE TABLE IF NOT EXISTS content_posts (
   user_id BIGINT NOT NULL,
   title VARCHAR(120) NOT NULL,
   content VARCHAR(4000) NOT NULL,
+  image_file_id BIGINT NULL,
   status VARCHAR(20) NOT NULL,
   review_comment VARCHAR(1000) NULL,
   created_at DATETIME NOT NULL,
@@ -159,6 +162,22 @@ CREATE TABLE IF NOT EXISTS resource_matches (
   updated_at DATETIME NULL
 );
 
+CREATE TABLE IF NOT EXISTS file_assets (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  original_name VARCHAR(255) NOT NULL,
+  stored_name VARCHAR(255) NOT NULL,
+  storage_path VARCHAR(1000) NOT NULL,
+  content_type VARCHAR(120) NOT NULL,
+  file_size BIGINT NOT NULL,
+  category VARCHAR(20) NOT NULL,
+  business_type VARCHAR(60) NULL,
+  business_id BIGINT NULL,
+  uploader_id BIGINT NOT NULL,
+  uploader_name VARCHAR(50) NOT NULL,
+  ip_address VARCHAR(120) NOT NULL,
+  created_at DATETIME NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
@@ -191,6 +210,8 @@ CREATE INDEX idx_help_needs_status_created_at ON help_needs (status, created_at)
 CREATE INDEX idx_resource_matches_status_created_at ON resource_matches (status, created_at);
 CREATE INDEX idx_donation_orders_user_created_at ON donation_orders (user_id, created_at);
 CREATE INDEX idx_donation_orders_status_created_at ON donation_orders (status, created_at);
+CREATE INDEX idx_file_assets_business ON file_assets (business_type, business_id, created_at);
+CREATE INDEX idx_file_assets_uploader_created_at ON file_assets (uploader_id, created_at);
 CREATE INDEX idx_notifications_user_read_created_at ON notifications (user_id, read_flag, created_at);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
 CREATE INDEX idx_audit_logs_action_created_at ON audit_logs (action, created_at);

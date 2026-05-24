@@ -4,6 +4,7 @@ import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.file.FileStorageService;
 import com.volunteer.vms.notification.NotificationService;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
@@ -52,17 +53,20 @@ public class ActivityController {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final AuditLogService auditLogService;
+    private final FileStorageService fileStorageService;
 
     public ActivityController(ActivityRepository activityRepository,
                               ActivityRegistrationRepository registrationRepository,
                               UserRepository userRepository,
                               NotificationService notificationService,
-                              AuditLogService auditLogService) {
+                              AuditLogService auditLogService,
+                              FileStorageService fileStorageService) {
         this.activityRepository = activityRepository;
         this.registrationRepository = registrationRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.auditLogService = auditLogService;
+        this.fileStorageService = fileStorageService;
     }
 
     @GetMapping
@@ -105,10 +109,12 @@ public class ActivityController {
         activity.setEndTime(createRequest.endTime());
         activity.setRegistrationDeadline(createRequest.registrationDeadline());
         activity.setParticipationRequirement(createRequest.participationRequirement());
+        activity.setAttachmentFileId(createRequest.attachmentFileId());
         activity.setMaxParticipants(createRequest.maxParticipants());
         activity.setStatus(createRequest.status() == null ? ActivityStatus.PUBLISHED : createRequest.status());
         activity.setOrganizerId(currentUser.getId());
         Activity saved = activityRepository.save(activity);
+        bindFileIfPresent(saved.getAttachmentFileId(), "ACTIVITY", saved.getId());
         auditLogService.log(
                 request,
                 currentUser,
@@ -148,8 +154,10 @@ public class ActivityController {
         activity.setEndTime(updateRequest.endTime());
         activity.setRegistrationDeadline(updateRequest.registrationDeadline());
         activity.setParticipationRequirement(updateRequest.participationRequirement());
+        activity.setAttachmentFileId(updateRequest.attachmentFileId());
         activity.setMaxParticipants(updateRequest.maxParticipants());
         Activity saved = activityRepository.save(activity);
+        bindFileIfPresent(saved.getAttachmentFileId(), "ACTIVITY", saved.getId());
         notifyParticipantsForActivityUpdated(saved);
         auditLogService.log(
                 request,
@@ -565,6 +573,12 @@ public class ActivityController {
         }
     }
 
+    private void bindFileIfPresent(Long fileId, String businessType, Long businessId) {
+        if (fileId != null) {
+            fileStorageService.bindBusiness(fileId, businessType, businessId);
+        }
+    }
+
     public record CreateActivityRequest(
             @NotBlank(message = "活动标题不能为空")
             @Size(max = 120, message = "活动标题最多120字")
@@ -582,6 +596,7 @@ public class ActivityController {
             LocalDateTime registrationDeadline,
             @Size(max = 1000, message = "参与要求最多1000字")
             String participationRequirement,
+            Long attachmentFileId,
             @NotNull(message = "人数上限不能为空")
             @Min(value = 1, message = "人数上限至少1人")
             Integer maxParticipants,
@@ -606,6 +621,7 @@ public class ActivityController {
             LocalDateTime registrationDeadline,
             @Size(max = 1000, message = "参与要求最多1000字")
             String participationRequirement,
+            Long attachmentFileId,
             @NotNull(message = "人数上限不能为空")
             @Min(value = 1, message = "人数上限至少1人")
             Integer maxParticipants
@@ -637,6 +653,7 @@ public class ActivityController {
                                    LocalDateTime endTime,
                                    LocalDateTime registrationDeadline,
                                    String participationRequirement,
+                                   Long attachmentFileId,
                                    Integer maxParticipants,
                                    Long registeredCount,
                                    ActivityStatus status,
@@ -651,6 +668,7 @@ public class ActivityController {
                     activity.getEndTime(),
                     activity.getRegistrationDeadline(),
                     activity.getParticipationRequirement(),
+                    activity.getAttachmentFileId(),
                     activity.getMaxParticipants(),
                     registeredCount,
                     activity.getStatus(),

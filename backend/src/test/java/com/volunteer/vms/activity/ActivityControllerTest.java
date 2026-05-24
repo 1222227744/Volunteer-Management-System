@@ -59,7 +59,8 @@ class ActivityControllerTest {
                 registrationRepository,
                 userRepository,
                 notificationService,
-                auditLogService
+                auditLogService,
+                null
         );
 
         organizer = new User();

@@ -4,6 +4,7 @@ import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.file.FileStorageService;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,10 +27,14 @@ import java.util.List;
 public class ContentController {
     private final ContentPostRepository contentPostRepository;
     private final AuditLogService auditLogService;
+    private final FileStorageService fileStorageService;
 
-    public ContentController(ContentPostRepository contentPostRepository, AuditLogService auditLogService) {
+    public ContentController(ContentPostRepository contentPostRepository,
+                             AuditLogService auditLogService,
+                             FileStorageService fileStorageService) {
         this.contentPostRepository = contentPostRepository;
         this.auditLogService = auditLogService;
+        this.fileStorageService = fileStorageService;
     }
 
     @PostMapping
@@ -40,8 +45,12 @@ public class ContentController {
         contentPost.setUserId(currentUser.getId());
         contentPost.setTitle(submitRequest.title());
         contentPost.setContent(submitRequest.content());
+        contentPost.setImageFileId(submitRequest.imageFileId());
         contentPost.setStatus(ContentStatus.PENDING);
         ContentPost saved = contentPostRepository.save(contentPost);
+        if (saved.getImageFileId() != null) {
+            fileStorageService.bindBusiness(saved.getImageFileId(), "CONTENT", saved.getId());
+        }
         auditLogService.log(
                 request,
                 currentUser,
@@ -115,7 +124,8 @@ public class ContentController {
             String title,
             @NotBlank(message = "内容不能为空")
             @Size(max = 4000, message = "内容最多4000字")
-            String content
+            String content,
+            Long imageFileId
     ) {
     }
 
@@ -131,6 +141,7 @@ public class ContentController {
                                   Long userId,
                                   String title,
                                   String content,
+                                  Long imageFileId,
                                   ContentStatus status,
                                   String reviewComment,
                                   LocalDateTime createdAt,
@@ -141,6 +152,7 @@ public class ContentController {
                     post.getUserId(),
                     post.getTitle(),
                     post.getContent(),
+                    post.getImageFileId(),
                     post.getStatus(),
                     post.getReviewComment(),
                     post.getCreatedAt(),

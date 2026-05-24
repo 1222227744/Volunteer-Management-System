@@ -1,4 +1,4 @@
-import { apiRequest, fileRequest } from "./http";
+import { apiRequest, fileRequest, uploadRequest } from "./http";
 
 export const authApi = {
   login: (payload) =>
@@ -103,6 +103,32 @@ export const userApi = {
       method: "PATCH",
       body: JSON.stringify({ verificationStatus, comment })
     })
+};
+
+export const fileApi = {
+  upload: ({ file, category, businessType = null, businessId = null }) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("category", category);
+    if (businessType) {
+      formData.append("businessType", businessType);
+    }
+    if (businessId) {
+      formData.append("businessId", String(businessId));
+    }
+    return uploadRequest("/api/files/upload", formData);
+  },
+  download: async (fileId, filename = `file-${fileId}`) => {
+    const blob = await fileRequest(`/api/files/${fileId}`);
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
 };
 
 export const announcementApi = {

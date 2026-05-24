@@ -40,12 +40,17 @@
           </div>
         </div>
         <div class="field" style="margin-top: 10px;">
+          <label>服务证明材料（pdf、docx、xlsx、pptx、zip、rar）</label>
+          <input type="file" @change="uploadEvidence" />
+          <p v-if="evidenceName" class="muted">已上传：{{ evidenceName }}</p>
+        </div>
+        <div class="field" style="margin-top: 10px;">
           <label>服务成果描述</label>
           <textarea v-model.trim="recordForm.achievement" placeholder="填写本次志愿服务成果"></textarea>
         </div>
         <div class="stack" style="margin-top: 12px;">
-          <button class="btn primary" :disabled="submitting" @click="submitRecord">
-            {{ submitting ? "提交中..." : "登记服务记录" }}
+          <button class="btn primary" :disabled="submitting || uploading" @click="submitRecord">
+            {{ submitting || uploading ? "处理中..." : "登记服务记录" }}
           </button>
         </div>
       </div>
@@ -80,6 +85,8 @@
                 <span class="tag">{{ record.hours }} 小时</span>
               </div>
               <p class="muted">{{ record.achievement }}</p>
+              <button v-if="record.evidenceFileId" class="btn ghost" @click="downloadFile(record.evidenceFileId)">下载证明材料</button>
+              <p v-else-if="record.evidenceUrl" class="muted">证明链接：{{ record.evidenceUrl }}</p>
               <p class="muted">时间：{{ formatDate(record.createdAt) }}</p>
             </article>
             <p v-if="!myRecords.length" class="notice">暂无服务记录。</p>
@@ -96,6 +103,8 @@
                 <span class="tag">{{ record.hours }} 小时</span>
               </div>
               <p class="muted">{{ record.achievement }}</p>
+              <button v-if="record.evidenceFileId" class="btn ghost" @click="downloadFile(record.evidenceFileId)">下载证明材料</button>
+              <p v-else-if="record.evidenceUrl" class="muted">证明链接：{{ record.evidenceUrl }}</p>
               <p class="muted">时间：{{ formatDate(record.createdAt) }}</p>
             </article>
             <p v-if="!selectedUserRecords.length" class="notice">选择志愿者后可查看其服务记录。</p>
@@ -108,7 +117,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
-import { activityApi, activityFeedbackApi, serviceRecordApi } from "../api";
+import { activityApi, activityFeedbackApi, fileApi, serviceRecordApi } from "../api";
 import { authState } from "../stores/auth";
 import { formatRegistrationStatus } from "../utils/labels";
 
@@ -116,6 +125,8 @@ import { formatRegistrationStatus } from "../utils/labels";
 const message = ref("");
 const messageType = ref("success");
 const submitting = ref(false);
+const uploading = ref(false);
+const evidenceName = ref("");
 
 const activities = ref([]);
 const registrations = ref([]);
@@ -130,7 +141,8 @@ const recordForm = reactive({
   userId: "",
   hours: 1,
   achievement: "",
-  evidenceUrl: ""
+  evidenceUrl: "",
+  evidenceFileId: null
 });
 
 const canManage = computed(
@@ -151,6 +163,34 @@ const eligibleRegistrations = computed(() =>
 function formatDate(raw) {
   if (!raw) return "-";
   return raw.replace("T", " ").slice(0, 16);
+}
+
+async function uploadEvidence(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  uploading.value = true;
+  message.value = "";
+  try {
+    const asset = await fileApi.upload({
+      file,
+      category: "ATTACHMENT",
+      businessType: "SERVICE_RECORD"
+    });
+    recordForm.evidenceFileId = asset.id;
+    evidenceName.value = asset.originalName;
+    messageType.value = "success";
+    message.value = "证明材料上传成功";
+  } catch (err) {
+    messageType.value = "error";
+    message.value = err.message;
+  } finally {
+    uploading.value = false;
+    event.target.value = "";
+  }
+}
+
+function downloadFile(fileId) {
+  fileApi.download(fileId, `evidence-${fileId}`);
 }
 
 async function loadMyRecords() {
@@ -211,13 +251,16 @@ async function submitRecord() {
       userId: Number(recordForm.userId),
       hours: Number(recordForm.hours),
       achievement: recordForm.achievement,
-      evidenceUrl: recordForm.evidenceUrl || null
+      evidenceUrl: recordForm.evidenceUrl || null,
+      evidenceFileId: recordForm.evidenceFileId || null
     });
     messageType.value = "success";
     message.value = "登记成功，积分已自动发放";
     recordForm.hours = 1;
     recordForm.achievement = "";
     recordForm.evidenceUrl = "";
+    recordForm.evidenceFileId = null;
+    evidenceName.value = "";
     await Promise.all([loadMyRecords(), onActivityChange(false)]);
     recordForm.userId = selectedUserId;
     await onUserChange();
