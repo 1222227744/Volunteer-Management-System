@@ -255,6 +255,18 @@ export const activityFeedbackApi = {
   byActivity: (activityId) => apiRequest(`/api/activity-feedbacks/activity/${activityId}`)
 };
 
+export const honorApi = {
+  candidates: () => apiRequest("/api/honors/candidates"),
+  award: (payload) =>
+    apiRequest("/api/honors", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  my: () => apiRequest("/api/honors/my"),
+  showcase: () => apiRequest("/api/honors/showcase"),
+  all: () => apiRequest("/api/honors")
+};
+
 export const auditApi = {
   paged: (params = {}) => {
     const query = new URLSearchParams();

@@ -178,6 +178,20 @@ CREATE TABLE IF NOT EXISTS file_assets (
   created_at DATETIME NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS honor_records (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  honor_type VARCHAR(40) NOT NULL,
+  title VARCHAR(120) NOT NULL,
+  reason VARCHAR(1000) NOT NULL,
+  showcase_text VARCHAR(2000) NULL,
+  related_activity_id BIGINT NULL,
+  points_awarded INT NOT NULL,
+  awarded_by BIGINT NOT NULL,
+  awarded_at DATETIME NOT NULL,
+  public_visible BIT(1) NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
@@ -212,6 +226,8 @@ CREATE INDEX idx_donation_orders_user_created_at ON donation_orders (user_id, cr
 CREATE INDEX idx_donation_orders_status_created_at ON donation_orders (status, created_at);
 CREATE INDEX idx_file_assets_business ON file_assets (business_type, business_id, created_at);
 CREATE INDEX idx_file_assets_uploader_created_at ON file_assets (uploader_id, created_at);
+CREATE INDEX idx_honor_records_user_awarded_at ON honor_records (user_id, awarded_at);
+CREATE INDEX idx_honor_records_public_awarded_at ON honor_records (public_visible, awarded_at);
 CREATE INDEX idx_notifications_user_read_created_at ON notifications (user_id, read_flag, created_at);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
 CREATE INDEX idx_audit_logs_action_created_at ON audit_logs (action, created_at);

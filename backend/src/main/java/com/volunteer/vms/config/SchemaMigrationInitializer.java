@@ -197,6 +197,21 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_023",
                     "补充文件上传人索引",
                     "sql/migrations/V3_023__add_file_asset_uploader_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_024",
+                    "创建荣誉激励记录表",
+                    "sql/migrations/V3_024__create_honor_records.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_025",
+                    "补充荣誉用户时间索引",
+                    "sql/migrations/V3_025__add_honor_user_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_026",
+                    "补充公开荣誉时间索引",
+                    "sql/migrations/V3_026__add_honor_public_index.sql"
             )
     );
 
@@ -270,6 +285,9 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_021" -> decideColumnMigration("service_records", "evidence_file_id");
             case "V3_022" -> decideIndexMigration("file_assets", "idx_file_assets_business");
             case "V3_023" -> decideIndexMigration("file_assets", "idx_file_assets_uploader_created_at");
+            case "V3_024" -> decideTableMigration("honor_records");
+            case "V3_025" -> decideIndexMigration("honor_records", "idx_honor_records_user_awarded_at");
+            case "V3_026" -> decideIndexMigration("honor_records", "idx_honor_records_public_awarded_at");
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }

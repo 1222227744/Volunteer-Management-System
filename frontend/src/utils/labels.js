@@ -66,6 +66,12 @@ export const donationOrderStatusLabels = {
   CLOSED: "已关闭"
 };
 
+export const honorTypeLabels = {
+  EXCELLENT_VOLUNTEER: "优秀志愿者",
+  SERVICE_STAR: "服务之星",
+  SPECIAL_CONTRIBUTION: "特殊贡献"
+};
+
 export function formatActivityStatus(status) {
   return activityStatusLabels[status] || status || "-";
 }
@@ -100,4 +106,8 @@ export function formatMatchStatus(status) {
 
 export function formatDonationOrderStatus(status) {
   return donationOrderStatusLabels[status] || status || "-";
+}
+
+export function formatHonorType(type) {
+  return honorTypeLabels[type] || type || "-";
 }

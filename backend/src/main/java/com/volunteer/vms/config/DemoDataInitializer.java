@@ -23,6 +23,9 @@ import com.volunteer.vms.feedback.ActivityFeedbackRepository;
 import com.volunteer.vms.feedback.Feedback;
 import com.volunteer.vms.feedback.FeedbackRepository;
 import com.volunteer.vms.feedback.FeedbackStatus;
+import com.volunteer.vms.honor.HonorRecord;
+import com.volunteer.vms.honor.HonorRecordRepository;
+import com.volunteer.vms.honor.HonorType;
 import com.volunteer.vms.notification.Notification;
 import com.volunteer.vms.notification.NotificationRepository;
 import com.volunteer.vms.resource.HelpNeed;
@@ -79,6 +82,7 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final PublicResourceRepository publicResourceRepository;
     private final HelpNeedRepository helpNeedRepository;
     private final ResourceMatchRepository resourceMatchRepository;
+    private final HonorRecordRepository honorRecordRepository;
     private final PasswordEncoder passwordEncoder;
     private final DemoDataProperties demoDataProperties;
 
@@ -97,6 +101,7 @@ public class DemoDataInitializer implements CommandLineRunner {
                                PublicResourceRepository publicResourceRepository,
                                HelpNeedRepository helpNeedRepository,
                                ResourceMatchRepository resourceMatchRepository,
+                               HonorRecordRepository honorRecordRepository,
                                PasswordEncoder passwordEncoder,
                                DemoDataProperties demoDataProperties) {
         this.userRepository = userRepository;
@@ -114,6 +119,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         this.publicResourceRepository = publicResourceRepository;
         this.helpNeedRepository = helpNeedRepository;
         this.resourceMatchRepository = resourceMatchRepository;
+        this.honorRecordRepository = honorRecordRepository;
         this.passwordEncoder = passwordEncoder;
         this.demoDataProperties = demoDataProperties;
     }
@@ -139,6 +145,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         seedDonations(users);
         seedFeedbacks(users);
         seedResourceMatches(users);
+        seedHonors(users, activities);
         seedNotifications(users);
         seedAuditLogs(users, activities);
         log.info("演示数据初始化完成");
@@ -497,6 +504,45 @@ public class DemoDataInitializer implements CommandLineRunner {
         saveMatch(masks, elderNeed, 120, "已完成资源锁定，等待活动前统一发放。", MatchStatus.MATCHED, organizer.getId());
         books.setStatus(ResourceStatus.AVAILABLE);
         publicResourceRepository.save(books);
+    }
+
+    private void seedHonors(Map<String, User> users, Map<String, Activity> activities) {
+        if (honorRecordRepository.count() > 0) {
+            return;
+        }
+        saveHonor(users.get("chen"), users.get("admin"), HonorType.EXCELLENT_VOLUNTEER,
+                "优秀志愿者", "累计服务时长和活动评价表现突出，在公园环保清洁行动中承担重点区域清洁任务。",
+                "陈墨在城市公园环保清洁行动中主动承担东侧步道清洁和垃圾分类宣传任务，现场沟通耐心，服务记录完整，获得活动评价 5 分。",
+                activities.get("park").getId(), 30, true);
+        saveHonor(users.get("lin"), users.get("admin"), HonorType.SERVICE_STAR,
+                "阅读陪伴服务之星", "在社区阅读陪伴活动中服务态度稳定，活动成果记录清晰。",
+                "林安在社区图书馆阅读陪伴活动中协助儿童阅读和图书整理，能够持续关注儿童参与体验，是阅读陪伴场景中的稳定志愿力量。",
+                activities.get("library").getId(), 20, true);
+    }
+
+    private void saveHonor(User targetUser,
+                           User awardedBy,
+                           HonorType honorType,
+                           String title,
+                           String reason,
+                           String showcaseText,
+                           Long relatedActivityId,
+                           int pointsAwarded,
+                           boolean publicVisible) {
+        HonorRecord record = new HonorRecord();
+        record.setUserId(targetUser.getId());
+        record.setHonorType(honorType);
+        record.setTitle(title);
+        record.setReason(reason);
+        record.setShowcaseText(showcaseText);
+        record.setRelatedActivityId(relatedActivityId);
+        record.setPointsAwarded(pointsAwarded);
+        record.setAwardedBy(awardedBy.getId());
+        record.setAwardedAt(LocalDateTime.now().minusDays(1));
+        record.setPublicVisible(publicVisible);
+        honorRecordRepository.save(record);
+        targetUser.setPoints(targetUser.getPoints() + pointsAwarded);
+        userRepository.save(targetUser);
     }
 
     private PublicResource saveResource(String name,
