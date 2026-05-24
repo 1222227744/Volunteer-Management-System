@@ -9,9 +9,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
     private final AuthInterceptor authInterceptor;
+    private final CorsProperties corsProperties;
 
-    public WebMvcConfig(AuthInterceptor authInterceptor) {
+    public WebMvcConfig(AuthInterceptor authInterceptor, CorsProperties corsProperties) {
         this.authInterceptor = authInterceptor;
+        this.corsProperties = corsProperties;
     }
 
     @Override
@@ -20,16 +22,17 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
                         "/api/auth/login",
-                        "/api/auth/register"
+                        "/api/auth/register",
+                        "/api/health"
                 );
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOriginPatterns("*")
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(false);
+                .allowedOriginPatterns(corsProperties.originPatterns())
+                .allowedMethods(corsProperties.methods())
+                .allowedHeaders(corsProperties.headers())
+                .allowCredentials(corsProperties.allowCredentials());
     }
 }

@@ -40,3 +40,8 @@ vms:
     storage-dir: ${VMS_FILE_STORAGE_DIR:./uploads}
     image-max-bytes: ${VMS_FILE_IMAGE_MAX_BYTES:5242880}
     attachment-max-bytes: ${VMS_FILE_ATTACHMENT_MAX_BYTES:52428800}
+  cors:
+    allowed-origin-patterns: ${VMS_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://127.0.0.1:5173}
+    allowed-methods: ${VMS_CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,PATCH,OPTIONS}
+    allowed-headers: ${VMS_CORS_ALLOWED_HEADERS:Authorization,Content-Type}
+    allow-credentials: ${VMS_CORS_ALLOW_CREDENTIALS:false}
