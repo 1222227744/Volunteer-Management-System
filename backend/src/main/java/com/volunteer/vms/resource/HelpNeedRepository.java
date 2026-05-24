@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface HelpNeedRepository extends JpaRepository<HelpNeed, Long> {
     List<HelpNeed> findAllByOrderByCreatedAtDesc();
+
+    long countByStatus(NeedStatus status);
 }

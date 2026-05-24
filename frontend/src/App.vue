@@ -54,6 +54,7 @@
         <RouterLink to="/announcements">公告</RouterLink>
         <RouterLink to="/notifications">通知</RouterLink>
         <RouterLink v-if="canManage" to="/dashboard">统计</RouterLink>
+        <RouterLink v-if="isAdmin" to="/ops">系统运维</RouterLink>
         <RouterLink v-if="isAdmin" to="/users-admin">用户管理</RouterLink>
         <RouterLink v-if="isAdmin" to="/audit-logs">审计日志</RouterLink>
       </nav>

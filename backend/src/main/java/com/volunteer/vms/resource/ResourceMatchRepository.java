@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface ResourceMatchRepository extends JpaRepository<ResourceMatch, Long> {
     List<ResourceMatch> findAllByOrderByCreatedAtDesc();
+
+    long countByStatus(MatchStatus status);
 }

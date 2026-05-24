@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface PublicResourceRepository extends JpaRepository<PublicResource, Long> {
     List<PublicResource> findAllByOrderByCreatedAtDesc();
+
+    long countByStatus(ResourceStatus status);
 }

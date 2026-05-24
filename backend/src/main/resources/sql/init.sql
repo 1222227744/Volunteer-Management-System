@@ -236,6 +236,33 @@ CREATE TABLE IF NOT EXISTS external_notification_tasks (
   sent_at DATETIME NULL
 );
 
+CREATE TABLE IF NOT EXISTS system_configs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  config_key VARCHAR(80) NOT NULL,
+  config_value VARCHAR(500) NOT NULL,
+  config_name VARCHAR(120) NOT NULL,
+  description VARCHAR(500) NOT NULL,
+  editable BIT(1) NOT NULL,
+  updated_at DATETIME NOT NULL,
+  updated_by BIGINT NOT NULL,
+  updated_by_name VARCHAR(50) NOT NULL,
+  CONSTRAINT uk_system_configs_key UNIQUE (config_key)
+);
+
+CREATE TABLE IF NOT EXISTS incident_records (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(120) NOT NULL,
+  description VARCHAR(1000) NOT NULL,
+  severity VARCHAR(20) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  handling_measure VARCHAR(1000) NULL,
+  result VARCHAR(1000) NULL,
+  created_by BIGINT NOT NULL,
+  created_by_name VARCHAR(50) NOT NULL,
+  created_at DATETIME NOT NULL,
+  resolved_at DATETIME NULL
+);
+
 CREATE TABLE IF NOT EXISTS audit_logs (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   operator_id BIGINT NOT NULL,
@@ -268,5 +295,6 @@ CREATE INDEX idx_honor_records_public_awarded_at ON honor_records (public_visibl
 CREATE INDEX idx_notifications_user_read_created_at ON notifications (user_id, read_flag, created_at);
 CREATE INDEX idx_external_notification_tasks_status_created_at ON external_notification_tasks (status, created_at);
 CREATE INDEX idx_external_notification_tasks_user_created_at ON external_notification_tasks (user_id, created_at);
+CREATE INDEX idx_incident_records_status_created_at ON incident_records (status, created_at);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs (created_at);
 CREATE INDEX idx_audit_logs_action_created_at ON audit_logs (action, created_at);

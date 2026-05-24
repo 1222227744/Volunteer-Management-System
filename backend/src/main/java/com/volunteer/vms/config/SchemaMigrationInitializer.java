@@ -247,6 +247,21 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_033",
                     "规范化活动签到码数据",
                     "sql/migrations/V3_033__normalize_activity_check_code.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_034",
+                    "创建系统配置表",
+                    "sql/migrations/V3_034__create_system_configs.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_035",
+                    "创建故障处理记录表",
+                    "sql/migrations/V3_035__create_incident_records.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_036",
+                    "补充故障处理状态时间索引",
+                    "sql/migrations/V3_036__add_incident_status_index.sql"
             )
     );
 
@@ -330,6 +345,9 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_031" -> decideTableMigration("activity_attendance_corrections");
             case "V3_032" -> decideAttendanceCorrectionIndexMigration();
             case "V3_033" -> decideActivityCheckCodeNormalizeMigration();
+            case "V3_034" -> decideTableMigration("system_configs");
+            case "V3_035" -> decideTableMigration("incident_records");
+            case "V3_036" -> decideIndexMigration("incident_records", "idx_incident_records_status_created_at");
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }

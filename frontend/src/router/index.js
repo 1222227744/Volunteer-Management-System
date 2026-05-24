@@ -88,6 +88,12 @@ const routes = [
     meta: { roles: ["ADMIN", "ORGANIZER"] }
   },
   {
+    path: "/ops",
+    name: "ops",
+    component: () => import("../views/OpsView.vue"),
+    meta: { roles: ["ADMIN"] }
+  },
+  {
     path: "/users-admin",
     name: "users-admin",
     component: () => import("../views/UserManagementView.vue"),

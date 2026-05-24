@@ -92,6 +92,20 @@ export const attendanceCorrectionActionLabels = {
   SET_CANCELLED: "更正为已取消"
 };
 
+export const incidentSeverityLabels = {
+  LOW: "低",
+  MEDIUM: "中",
+  HIGH: "高",
+  CRITICAL: "严重"
+};
+
+export const incidentStatusLabels = {
+  OPEN: "待处理",
+  PROCESSING: "处理中",
+  RESOLVED: "已解决",
+  CLOSED: "已关闭"
+};
+
 export function formatActivityStatus(status) {
   return activityStatusLabels[status] || status || "-";
 }
@@ -142,4 +156,12 @@ export function formatExternalNotificationStatus(status) {
 
 export function formatAttendanceCorrectionAction(action) {
   return attendanceCorrectionActionLabels[action] || action || "-";
+}
+
+export function formatIncidentSeverity(severity) {
+  return incidentSeverityLabels[severity] || severity || "-";
+}
+
+export function formatIncidentStatus(status) {
+  return incidentStatusLabels[status] || status || "-";
 }

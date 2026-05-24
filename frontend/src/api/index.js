@@ -182,7 +182,18 @@ export const notificationApi = {
 };
 
 export const dashboardApi = {
-  stats: () => apiRequest("/api/dashboard/stats")
+  stats: () => apiRequest("/api/dashboard/stats"),
+  exportStats: async () => {
+    const blob = await fileRequest("/api/dashboard/stats/export");
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "dashboard-stats.csv";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
 };
 
 export const serviceRecordApi = {
@@ -390,4 +401,24 @@ export const auditApi = {
     anchor.remove();
     URL.revokeObjectURL(url);
   }
+};
+
+export const opsApi = {
+  configs: () => apiRequest("/api/ops/configs"),
+  updateConfig: (configKey, configValue) =>
+    apiRequest(`/api/ops/configs/${encodeURIComponent(configKey)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ configValue })
+    }),
+  incidents: () => apiRequest("/api/ops/incidents"),
+  createIncident: (payload) =>
+    apiRequest("/api/ops/incidents", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  updateIncident: (incidentId, payload) =>
+    apiRequest(`/api/ops/incidents/${incidentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    })
 };
