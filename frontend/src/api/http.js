@@ -1,3 +1,4 @@
+import axios from "axios";
 import { authState, clearAuth } from "../stores/auth";
 
 let unauthorizedHandler = null;
@@ -6,102 +7,84 @@ export function setUnauthorizedHandler(fn) {
   unauthorizedHandler = fn;
 }
 
-async function parseError(response) {
-  try {
-    const body = await response.json();
-    return body.message || "请求失败";
-  } catch {
-    return `请求失败(${response.status})`;
+const http = axios.create({
+  baseURL: "",
+  timeout: 15000
+});
+
+http.interceptors.request.use((config) => {
+  if (authState.token) {
+    config.headers.Authorization = `Bearer ${authState.token}`;
   }
+  return config;
+});
+
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      clearAuth();
+      if (unauthorizedHandler) {
+        unauthorizedHandler();
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+function unwrapPayload(response) {
+  const payload = response.data;
+  if (payload?.code !== 200) {
+    throw new Error(payload?.message || "请求失败");
+  }
+  return payload.data;
+}
+
+function parseError(error) {
+  return error.response?.data?.message || error.message || "请求失败";
 }
 
 export async function apiRequest(path, options = {}) {
-  const headers = {
-    "Content-Type": "application/json",
-    ...(options.headers || {})
-  };
-  if (authState.token) {
-    headers.Authorization = `Bearer ${authState.token}`;
+  try {
+    const response = await http.request({
+      url: path,
+      method: options.method || "GET",
+      data: options.body ? JSON.parse(options.body) : options.data,
+      headers: options.headers
+    });
+    return unwrapPayload(response);
+  } catch (error) {
+    throw new Error(parseError(error));
   }
-
-  const response = await fetch(path, {
-    ...options,
-    headers
-  });
-
-  if (!response.ok) {
-    const message = await parseError(response);
-    if (response.status === 401) {
-      clearAuth();
-      if (unauthorizedHandler) {
-        unauthorizedHandler();
-      }
-    }
-    throw new Error(message);
-  }
-
-  const payload = await response.json();
-  if (payload.code !== 200) {
-    throw new Error(payload.message || "请求失败");
-  }
-  return payload.data;
 }
 
 export async function fileRequest(path, options = {}) {
-  const headers = {
-    ...(options.headers || {})
-  };
-  if (authState.token) {
-    headers.Authorization = `Bearer ${authState.token}`;
+  try {
+    const response = await http.request({
+      url: path,
+      method: options.method || "GET",
+      data: options.body,
+      headers: options.headers,
+      responseType: "blob"
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(parseError(error));
   }
-
-  const response = await fetch(path, {
-    ...options,
-    headers
-  });
-
-  if (!response.ok) {
-    const message = await parseError(response);
-    if (response.status === 401) {
-      clearAuth();
-      if (unauthorizedHandler) {
-        unauthorizedHandler();
-      }
-    }
-    throw new Error(message);
-  }
-  return response.blob();
 }
 
 export async function uploadRequest(path, formData, options = {}) {
-  const headers = {
-    ...(options.headers || {})
-  };
-  if (authState.token) {
-    headers.Authorization = `Bearer ${authState.token}`;
-  }
-
-  const response = await fetch(path, {
-    ...options,
-    method: options.method || "POST",
-    body: formData,
-    headers
-  });
-
-  if (!response.ok) {
-    const message = await parseError(response);
-    if (response.status === 401) {
-      clearAuth();
-      if (unauthorizedHandler) {
-        unauthorizedHandler();
+  try {
+    const response = await http.request({
+      url: path,
+      method: options.method || "POST",
+      data: formData,
+      headers: {
+        ...(options.headers || {})
       }
-    }
-    throw new Error(message);
+    });
+    return unwrapPayload(response);
+  } catch (error) {
+    throw new Error(parseError(error));
   }
-
-  const payload = await response.json();
-  if (payload.code !== 200) {
-    throw new Error(payload.message || "请求失败");
-  }
-  return payload.data;
 }
