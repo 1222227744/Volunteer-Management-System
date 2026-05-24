@@ -18,10 +18,14 @@ import java.util.Set;
 public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationWebSocketHandler webSocketHandler;
 
-    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
+    public NotificationService(NotificationRepository notificationRepository,
+                               UserRepository userRepository,
+                               NotificationWebSocketHandler webSocketHandler) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.webSocketHandler = webSocketHandler;
     }
 
     @Transactional
@@ -33,7 +37,8 @@ public class NotificationService {
         notification.setUserId(userId);
         notification.setTitle(title);
         notification.setContent(content);
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        pushRealtime(saved);
     }
 
     @Transactional
@@ -54,7 +59,7 @@ public class NotificationService {
         List<Notification> notifications = distinctUserIds.stream()
                 .map(userId -> buildNotification(userId, title, content, now))
                 .toList();
-        notificationRepository.saveAll(notifications);
+        notificationRepository.saveAll(notifications).forEach(this::pushRealtime);
     }
 
     @Transactional
@@ -69,5 +74,11 @@ public class NotificationService {
         notification.setContent(content);
         notification.setCreatedAt(createdAt);
         return notification;
+    }
+
+    private void pushRealtime(Notification notification) {
+        if (webSocketHandler != null) {
+            webSocketHandler.push(notification);
+        }
     }
 }

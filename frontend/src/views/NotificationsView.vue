@@ -6,7 +6,9 @@
     </div>
     <div class="panel-body">
       <p v-if="error" class="notice error">{{ error }}</p>
-      <p v-else class="notice" style="margin-bottom: 12px;">未读消息：{{ unreadCount }}</p>
+      <p v-else class="notice" style="margin-bottom: 12px;">
+        未读消息：{{ unreadCount }} | 实时推送：{{ realtimeStatus }}
+      </p>
       <div class="list">
         <article v-for="item in items" :key="item.id" class="card">
           <div class="stack" style="justify-content: space-between;">
@@ -26,12 +28,15 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { notificationApi } from "../api";
+import { authState } from "../stores/auth";
 
 const items = ref([]);
 const unreadCount = ref(0);
 const error = ref("");
+const realtimeStatus = ref("未连接");
+let socket = null;
 
 function formatDate(raw) {
   if (!raw) return "-";
@@ -53,11 +58,39 @@ async function markRead(id) {
   }
 }
 
+function connectRealtime() {
+  if (!authState.token || socket) {
+    return;
+  }
+  socket = new WebSocket(notificationApi.websocketUrl(authState.token));
+  socket.onopen = () => {
+    realtimeStatus.value = "已连接";
+  };
+  socket.onmessage = async () => {
+    await loadData();
+  };
+  socket.onerror = () => {
+    realtimeStatus.value = "连接异常";
+  };
+  socket.onclose = () => {
+    realtimeStatus.value = "已断开";
+    socket = null;
+  };
+}
+
 onMounted(async () => {
   try {
     await loadData();
+    connectRealtime();
   } catch (err) {
     error.value = err.message;
+  }
+});
+
+onBeforeUnmount(() => {
+  if (socket) {
+    socket.close();
+    socket = null;
   }
 });
 </script>

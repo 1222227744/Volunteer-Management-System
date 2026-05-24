@@ -145,7 +145,11 @@ export const notificationApi = {
   markRead: (id) =>
     apiRequest(`/api/notifications/${id}/read`, {
       method: "PATCH"
-    })
+    }),
+  websocketUrl: (token) => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${protocol}//${window.location.host}/ws/notifications?token=${encodeURIComponent(token)}`;
+  }
 };
 
 export const dashboardApi = {
