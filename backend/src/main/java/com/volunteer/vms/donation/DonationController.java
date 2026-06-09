@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * 接口层：实现 SRS FR-07 捐赠与支持管理。
@@ -32,13 +31,16 @@ public class DonationController {
     private final DonationRepository donationRepository;
     private final DonationOrderRepository orderRepository;
     private final AuditLogService auditLogService;
+    private final DonationPaymentGateway paymentGateway;
 
     public DonationController(DonationRepository donationRepository,
                               DonationOrderRepository orderRepository,
-                              AuditLogService auditLogService) {
+                              AuditLogService auditLogService,
+                              DonationPaymentGateway paymentGateway) {
         this.donationRepository = donationRepository;
         this.orderRepository = orderRepository;
         this.auditLogService = auditLogService;
+        this.paymentGateway = paymentGateway;
     }
 
     @PostMapping
@@ -52,8 +54,8 @@ public class DonationController {
         order.setAmount(createRequest.amount());
         order.setMessage(createRequest.message());
         order.setStatus(DonationOrderStatus.PAID);
-        order.setCallbackToken(UUID.randomUUID().toString().replace("-", ""));
-        order.setPaymentNote("兼容接口提交，视为已完成支付");
+        order.setCallbackToken(paymentGateway.createCallbackToken());
+        order.setPaymentNote("兼容接口提交，视为已完成支付，网关=" + paymentGateway.gatewayName());
         order.setPaidAt(LocalDateTime.now());
         DonationOrder savedOrder = orderRepository.save(order);
         Donation saved = createDonationFromOrder(savedOrder);
@@ -77,7 +79,7 @@ public class DonationController {
         order.setDonorName(resolveDonorName(createRequest.donorName(), currentUser));
         order.setAmount(createRequest.amount());
         order.setMessage(createRequest.message());
-        order.setCallbackToken(UUID.randomUUID().toString().replace("-", ""));
+        order.setCallbackToken(paymentGateway.createCallbackToken());
         DonationOrder saved = orderRepository.save(order);
         auditLogService.log(
                 request,
@@ -107,7 +109,7 @@ public class DonationController {
         if (paymentRequest.status() == DonationOrderStatus.PENDING || paymentRequest.status() == DonationOrderStatus.CLOSED) {
             throw new BizException(HttpStatus.BAD_REQUEST, "模拟支付状态只能为 PAID、FAILED 或 CANCELLED");
         }
-        if (!order.getCallbackToken().equals(paymentRequest.callbackToken().trim())) {
+        if (!paymentGateway.verifyCallback(order, paymentRequest.callbackToken())) {
             throw new BizException(HttpStatus.BAD_REQUEST, "支付回调校验失败");
         }
         order.setStatus(paymentRequest.status());

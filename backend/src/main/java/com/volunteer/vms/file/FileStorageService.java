@@ -10,9 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -37,10 +35,14 @@ public class FileStorageService {
 
     private final FileAssetRepository fileAssetRepository;
     private final FileStorageProperties properties;
+    private final FileObjectStorage objectStorage;
 
-    public FileStorageService(FileAssetRepository fileAssetRepository, FileStorageProperties properties) {
+    public FileStorageService(FileAssetRepository fileAssetRepository,
+                              FileStorageProperties properties,
+                              FileObjectStorage objectStorage) {
         this.fileAssetRepository = fileAssetRepository;
         this.properties = properties;
+        this.objectStorage = objectStorage;
     }
 
     public FileAsset store(MultipartFile file,
@@ -60,22 +62,12 @@ public class FileStorageService {
         validateCategoryAndSize(file, category, extension);
         validateContentType(file, extension);
         String storedName = UUID.randomUUID().toString().replace("-", "") + "." + extension;
-        Path storageRoot = Path.of(properties.storageDir()).toAbsolutePath().normalize();
-        Path target = storageRoot.resolve(storedName).normalize();
-        if (!target.startsWith(storageRoot)) {
-            throw new BizException(HttpStatus.BAD_REQUEST, "文件存储路径不合法");
-        }
-        try {
-            Files.createDirectories(storageRoot);
-            file.transferTo(target);
-        } catch (IOException ex) {
-            throw new BizException(HttpStatus.INTERNAL_SERVER_ERROR, "文件保存失败");
-        }
+        StoredFile storedFile = objectStorage.store(file, storedName);
 
         FileAsset asset = new FileAsset();
         asset.setOriginalName(originalName);
         asset.setStoredName(storedName);
-        asset.setStoragePath(target.toString());
+        asset.setStoragePath(storedFile.path().toString());
         asset.setContentType(resolveContentType(file, extension));
         asset.setFileSize(file.getSize());
         asset.setCategory(category);
@@ -88,12 +80,7 @@ public class FileStorageService {
     }
 
     public Path resolvePath(FileAsset asset) {
-        Path storageRoot = Path.of(properties.storageDir()).toAbsolutePath().normalize();
-        Path target = Path.of(asset.getStoragePath()).toAbsolutePath().normalize();
-        if (!target.startsWith(storageRoot) || !Files.exists(target) || !Files.isRegularFile(target)) {
-            throw new BizException(HttpStatus.NOT_FOUND, "文件不存在或已被移除");
-        }
-        return target;
+        return objectStorage.resolve(asset.getStoragePath());
     }
 
     public FileAsset bindBusiness(Long fileId, String businessType, Long businessId) {

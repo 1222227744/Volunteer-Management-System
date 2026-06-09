@@ -13,11 +13,14 @@ import java.util.List;
 public class ExternalNotificationService {
     private final ExternalNotificationTaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final ExternalNotificationSender sender;
 
     public ExternalNotificationService(ExternalNotificationTaskRepository taskRepository,
-                                       UserRepository userRepository) {
+                                       UserRepository userRepository,
+                                       ExternalNotificationSender sender) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
+        this.sender = sender;
     }
 
     @Async
@@ -61,6 +64,8 @@ public class ExternalNotificationService {
         task.setTitle(title);
         task.setContent(content);
         task.setRecipient(resolveRecipient(user, channel));
+        task.setStatus(ExternalNotificationStatus.PENDING);
+        task.setRetryCount(0);
         task.setMaxRetries(3);
         return task;
     }
@@ -68,21 +73,20 @@ public class ExternalNotificationService {
     private void sendOnce(ExternalNotificationTask task) {
         task.setLastTriedAt(LocalDateTime.now());
         task.setRetryCount(task.getRetryCount() + 1);
-        try {
-            simulateSend(task);
+        ExternalNotificationDeliveryResult result = sender.send(
+                task.getChannel(),
+                task.getRecipient(),
+                task.getTitle(),
+                task.getContent()
+        );
+        if (result.delivered()) {
             task.setStatus(ExternalNotificationStatus.SENT);
             task.setSentAt(LocalDateTime.now());
             task.setLastError(null);
-        } catch (RuntimeException ex) {
-            task.setStatus(ExternalNotificationStatus.FAILED);
-            task.setLastError(ex.getMessage());
+            return;
         }
-    }
-
-    private void simulateSend(ExternalNotificationTask task) {
-        if (task.getRecipient() == null || task.getRecipient().isBlank()) {
-            throw new IllegalStateException("缺少" + translateChannel(task.getChannel()) + "接收地址");
-        }
+        task.setStatus(ExternalNotificationStatus.FAILED);
+        task.setLastError(result.errorMessage());
     }
 
     private String resolveRecipient(User user, ExternalNotificationChannel channel) {
@@ -92,7 +96,4 @@ public class ExternalNotificationService {
         return user.getUsername() + "@example.local";
     }
 
-    private String translateChannel(ExternalNotificationChannel channel) {
-        return channel == ExternalNotificationChannel.SMS ? "短信" : "邮件";
-    }
 }

@@ -36,7 +36,11 @@ class NotificationControllerTest {
 
     @BeforeEach
     void setUp() {
-        externalNotificationService = new ExternalNotificationService(externalTaskRepository, null);
+        externalNotificationService = new ExternalNotificationService(
+                externalTaskRepository,
+                null,
+                new SimulatedExternalNotificationSender()
+        );
         controller = new NotificationController(notificationRepository, externalTaskRepository, externalNotificationService);
 
         User user = new User();
