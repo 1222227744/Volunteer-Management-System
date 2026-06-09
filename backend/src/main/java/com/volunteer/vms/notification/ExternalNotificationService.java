@@ -93,6 +93,7 @@ public class ExternalNotificationService {
         if (channel == ExternalNotificationChannel.SMS) {
             return user.getPhone();
         }
+        // 用户表当前没有独立 email 字段；真实 SMTP 仅使用邮箱格式 username，非邮箱用户名会被明确标记为未配置真实邮箱。
         if (user.getUsername() != null && user.getUsername().contains("@")) {
             return user.getUsername();
         }

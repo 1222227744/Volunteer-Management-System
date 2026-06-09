@@ -1,26 +1,46 @@
 @baseUrl = http://127.0.0.1:8080
 @token =
+@activityId = 1
+@userId = 1
+@registrationUserId = 1
+@recordId = 1
+@correctionId = 1
+@orderId = 1
+@callbackToken =
+@externalTaskId = 1
+
+### 0) 健康检查
+GET {{baseUrl}}/api/health
 
 ### 1) 管理员登录
+# 将响应 data.token 复制到上方 @token。
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "username": "admin",
+  "username": "admin@example.com",
   "password": "admin123"
 }
 
-### 2) 志愿者注册
+### 2) 获取当前登录用户
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### 3) 注册志愿者
 POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
-  "username": "volunteer01",
+  "username": "volunteer01@example.com",
   "password": "12345678",
   "displayName": "志愿者01"
 }
 
-### 3) 创建活动（将 {{token}} 替换为登录返回token）
+### 4) 查询活动列表
+GET {{baseUrl}}/api/activities?status=PUBLISHED
+Authorization: Bearer {{token}}
+
+### 5) 创建活动（组织方或管理员）
 POST {{baseUrl}}/api/activities
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -29,12 +49,106 @@ Content-Type: application/json
   "title": "周末社区清洁",
   "description": "组织社区卫生清洁志愿行动",
   "location": "XX社区广场",
-  "startTime": "2026-03-15T09:00:00",
-  "endTime": "2026-03-15T12:00:00",
+  "startTime": "2026-07-15T09:00:00",
+  "endTime": "2026-07-15T12:00:00",
+  "registrationDeadline": "2026-07-14T18:00:00",
+  "participationRequirement": "身体健康，服从现场组织安排。",
   "maxParticipants": 50,
   "status": "PUBLISHED"
 }
 
-### 4) 查询活动列表
-GET {{baseUrl}}/api/activities
+### 6) 志愿者报名活动
+POST {{baseUrl}}/api/activities/{{activityId}}/register
+Authorization: Bearer {{token}}
+
+### 7) 审核报名（组织方或管理员）
+PATCH {{baseUrl}}/api/activities/{{activityId}}/registrations/{{registrationUserId}}/status
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "APPROVED",
+  "comment": "符合活动参与要求"
+}
+
+### 8) 刷新签到码（组织方或管理员）
+POST {{baseUrl}}/api/activities/{{activityId}}/check-code/refresh
+Authorization: Bearer {{token}}
+
+### 9) 查询我的报名
+GET {{baseUrl}}/api/activities/my-registrations
+Authorization: Bearer {{token}}
+
+### 10) 查询我的服务记录
+GET {{baseUrl}}/api/service-records/me
+Authorization: Bearer {{token}}
+
+### 11) 提交服务记录更正申请
+POST {{baseUrl}}/api/service-records/{{recordId}}/corrections
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "hours": 3.5,
+  "achievement": "补充说明实际服务成果",
+  "evidenceUrl": "",
+  "evidenceFileId": null,
+  "reason": "原登记时长与实际服务时长不一致"
+}
+
+### 12) 审核服务记录更正（组织方或管理员）
+PATCH {{baseUrl}}/api/service-records/corrections/{{correctionId}}/review
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "APPROVED",
+  "comment": "已核对活动签到记录"
+}
+
+### 13) 创建捐赠订单
+# 将响应 data.id 复制到 @orderId，将 data.callbackToken 复制到 @callbackToken。
+POST {{baseUrl}}/api/donations/orders
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "donorName": "爱心人士",
+  "amount": 66.00,
+  "message": "支持公益活动"
+}
+
+### 14) 模拟支付回调
+POST {{baseUrl}}/api/donations/orders/{{orderId}}/simulate-payment
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "PAID",
+  "callbackToken": "{{callbackToken}}",
+  "note": "课程演示模拟支付成功"
+}
+
+### 15) 查询我的通知
+GET {{baseUrl}}/api/notifications/my
+Authorization: Bearer {{token}}
+
+### 16) 查询外部通知任务（管理员）
+GET {{baseUrl}}/api/notifications/external-tasks
+Authorization: Bearer {{token}}
+
+### 17) 重试单条外部通知任务（管理员）
+POST {{baseUrl}}/api/notifications/external-tasks/{{externalTaskId}}/retry
+Authorization: Bearer {{token}}
+
+### 18) 查询统计看板（组织方或管理员）
+GET {{baseUrl}}/api/dashboard/stats
+Authorization: Bearer {{token}}
+
+### 19) 查询审计日志分页（管理员）
+GET {{baseUrl}}/api/audit-logs/paged?page=0&size=10
+Authorization: Bearer {{token}}
+
+### 20) 查询系统配置（管理员）
+GET {{baseUrl}}/api/ops/configs
 Authorization: Bearer {{token}}

@@ -34,8 +34,6 @@ vms:
     organizer-username: ${VMS_BOOTSTRAP_ORGANIZER_USERNAME:organizer}
     organizer-password: ${VMS_BOOTSTRAP_ORGANIZER_PASSWORD:organizer123}
     organizer-display-name: ${VMS_BOOTSTRAP_ORGANIZER_DISPLAY_NAME:组织方账号}
-  demo-data:
-    enabled: ${VMS_DEMO_DATA_ENABLED:false}
   files:
     storage-dir: ${VMS_FILE_STORAGE_DIR:./uploads}
     image-max-bytes: ${VMS_FILE_IMAGE_MAX_BYTES:5242880}

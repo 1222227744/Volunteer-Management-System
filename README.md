@@ -19,14 +19,14 @@
 - `概要设计v1.docx/.pdf`
 - `志愿者管理系统_可行性分析报告(V2.0).docx/.pdf`
 
-仓库中的 `README.md`、`系统设计说明书.md`、`需求实现对应矩阵.md` 和后续新增的迭代计划文档，负责把这些源文档与当前代码实现同步起来。
+仓库中的 `README.md`、`docs/接口文档.md`、`docs/需求实现对应矩阵.md` 和后续新增的迭代计划文档，负责把这些源文档与当前代码实现同步起来；已收工的需求规格、概要设计和系统设计文档保持归档状态，不再随每次代码调整反复改写。
 
 当前代码库对应第四次迭代阶段的 v4 系统：
 
 - 已具备核心业务主链，可直接演示注册、活动、报名审核、自助签到签退、服务记录、内容审核、公告通知、反馈、资源对接、捐赠、统计和审计。
 - `v3` 已补齐 JWT 登录态、Axios 客户端、文件上传审计、模拟支付回调、WebSocket 站内通知、外部通知任务、异常考勤更正、统计导出、系统配置和故障处理记录。
-- `v4` 已完成生产化和质量增强范围：服务记录更正闭环、外部通知/支付/文件存储适配边界、支付与通知关键测试、API 安全响应头、systemd 示例配置。
-- 当前剩余工作主要集中在真实第三方账号联调、Flyway/Liquibase 标准迁移框架替换和更完整的前端交互回归测试。
+- `v4` 已完成生产化和质量增强范围：服务记录更正闭环、真实 SMTP 邮件发送、外部通知/支付/文件存储适配边界、SQL 演示数据、API 安全响应头、systemd 示例配置。
+- 当前剩余工作主要集中在短信/支付/对象存储真实第三方账号联调、Flyway/Liquibase 标准迁移框架替换和更完整的自动化回归测试。
 
 ## 1. 技术栈
 
@@ -63,7 +63,10 @@ softwareEngineer/
   backend/                        后端工程
     src/main/java/...             Java 代码
     src/main/resources/...        配置与 SQL
+      sql/init.sql                数据库初始化脚本
+      sql/demo-data.sql           课程演示与测试数据脚本
     .env.example                  后端环境变量示例
+    api-demo.http                 接口冒烟演示请求
     pom.xml
   frontend/                       前端工程
     src/...                       Vue 页面与接口
@@ -74,6 +77,14 @@ softwareEngineer/
     nginx.example.conf            Nginx 反向代理示例
     volunteer-service-backend.service.example
                                   systemd 服务示例
+  scripts/
+    setup-ubuntu.sh               Ubuntu 一键生成真实运行配置
+    setup-windows.ps1             Windows 一键生成真实运行配置
+  docs/
+    接口文档.md                    当前代码对应的接口与外部服务边界说明
+    运维部署手册.md                环境配置、部署发布和日常运维说明
+    需求实现对应矩阵.md            需求、设计分层与代码实现对应关系
+    *迭代范围与目标.md             第二至第四次迭代范围和完成状态
   README.md
 ```
 
@@ -155,8 +166,10 @@ CREATE DATABASE IF NOT EXISTS volunteer_service
 
 方式二：执行项目里的初始化 SQL
 
+以下相对路径假设你从项目根目录启动 MySQL 客户端。
+
 ```sql
-SOURCE D:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/backend/src/main/resources/sql/init.sql;
+SOURCE backend/src/main/resources/sql/init.sql;
 ```
 
 说明：
@@ -164,6 +177,54 @@ SOURCE D:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEnginee
 - 当前 `application.yml` 默认配置 `ddl-auto=none`，数据库结构由 `init.sql` 和 `sql/migrations/` 中的版本化脚本管理。
 - 空库首次启动时，后端会自动执行 `backend/src/main/resources/sql/init.sql` 初始化基础表结构。
 - 已有库启动时，后端会通过 `schema_migrations` 历史表登记迁移脚本，并按兼容判定补齐缺失字段、表和索引。
+
+### 4.4 导入演示数据
+
+默认情况下不会自动创建演示账号或导入演示数据。课程展示或接口测试前，可在 MySQL 客户端中执行：
+
+以下相对路径同样假设你从项目根目录启动 MySQL 客户端。
+
+```sql
+SOURCE backend/src/main/resources/sql/demo-data.sql;
+```
+
+导入后可使用以下账号登录：
+
+- 管理员：`admin@example.com / admin123`
+- 组织方：`organizer@example.com / organizer123`
+- 志愿者：`liuqi@example.com / volunteer123`
+
+说明：
+
+- `demo-data.sql` 会先清理它自己创建的演示账号、演示活动、演示资源和关联数据，再重新插入，便于重复导入。
+- 演示账号使用邮箱格式用户名，可直接配合真实 SMTP 邮件发送能力。
+- 真实环境不要导入演示数据；真实账号应通过注册或后台管理流程创建。
+
+### 4.5 一键生成真实运行配置
+
+仓库提供两个相对路径脚本，用于生成本机真实运行配置，不写入任何私密默认值：
+
+Ubuntu：
+
+```bash
+bash scripts/setup-ubuntu.sh --db-user root --db-password '你的MySQL密码'
+```
+
+Windows PowerShell：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1 -DbUser root -DbPassword "你的MySQL密码"
+```
+
+如果希望同时初始化数据库并导入演示数据：
+
+```bash
+bash scripts/setup-ubuntu.sh --db-user root --db-password '你的MySQL密码' --init-db --with-demo
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1 -DbUser root -DbPassword "你的MySQL密码" -InitDb -WithDemo
+```
 
 ## 5. 启动步骤
 
@@ -194,31 +255,20 @@ npm run dev
 
 ### 5.3 登录系统
 
-默认情况下不会自动创建账号或导入演示数据。课程演示时，可在 `backend/.env` 中打开：
+默认情况下不会自动创建账号或导入演示数据。课程演示推荐先执行 `demo-data.sql`，然后使用 `admin@example.com / admin123` 登录。
 
-```env
-VMS_BOOTSTRAP_ENABLED=true
-VMS_DEMO_DATA_ENABLED=true
-```
-
-启用默认账号初始化后，系统首次启动会自动创建：
-
-- 管理员：`admin / admin123`
-- 组织方：`organizer / organizer123`
-
-你也可以通过注册页自己创建一个普通志愿者账号。
+如果只需要初始化空系统管理员和组织方账号，也可以在 `backend/.env` 中启用 `VMS_BOOTSTRAP_ENABLED=true`。该开关只创建默认账号，不导入业务演示数据。
 
 ## 6. 一次性快速启动流程
 
 如果你已经安装好 Java、Node、MySQL，并且只想尽快跑起来，按下面顺序操作：
 
-1. 复制 `backend/.env.example` 为 `backend/.env`
-2. 修改 `backend/.env` 里的数据库用户名和密码
-3. 复制 `frontend/.env.example` 为 `frontend/.env`
-4. 在 MySQL 中创建数据库 `volunteer_service`
-5. 启动后端：`cd backend && mvn clean spring-boot:run`
-6. 启动前端：`cd frontend && npm install && npm run dev`
-7. 打开 `http://127.0.0.1:5173`
+1. 运行 `scripts/setup-windows.ps1` 或 `scripts/setup-ubuntu.sh` 生成 `.env`
+2. 在 MySQL 中执行 `backend/src/main/resources/sql/init.sql`
+3. 如需课程展示数据，再执行 `backend/src/main/resources/sql/demo-data.sql`
+4. 启动后端：`cd backend && mvn clean spring-boot:run`
+5. 启动前端：`cd frontend && npm install && npm run dev`
+6. 打开 `http://127.0.0.1:5173`
 
 ## 7. 打包与部署
 
@@ -286,7 +336,7 @@ npm run preview
 
 ```powershell
 cd backend
-mvn -q test
+mvn -q -DskipTests package
 ```
 
 ### 前端验证
@@ -300,6 +350,7 @@ npm run build
 
 说明：
 
+- 后端当前不保留 `src/test` 自动化测试目录，课程演示验证以 SQL 演示数据、`backend/api-demo.http` 和构建验证为主。
 - 后端和前端都应作为本轮交付前的基础验证项执行。
 - 数据库结构治理以 `backend/src/main/resources/sql/init.sql` 和 `backend/src/main/resources/sql/migrations/` 中的实际脚本为准。
 
@@ -360,8 +411,16 @@ npm run build
 - 提供了 Nginx 反向代理示例
 - 登录页取消了写死的默认账号密码预填
 - `.gitignore` 已忽略真实 `.env` 文件，避免泄露本机密码
-- 已补充需求实现对应矩阵、可选演示数据初始化、数据库兼容迁移、版本化迁移脚本、默认账号昵称纠偏、JWT 登录态和 Axios 客户端
+- 已补充需求实现对应矩阵、可 `SOURCE` 导入的演示数据 SQL、数据库兼容迁移、版本化迁移脚本、默认账号昵称纠偏、JWT 登录态和 Axios 客户端
 - v4 已补齐服务记录更正闭环、真实 SMTP 邮件发送适配、外部通知发送适配端口、模拟支付网关适配端口、本地文件对象存储适配端口、API 安全响应头和 systemd 示例配置
+- 当前唯一维护的接口说明为 [docs/接口文档.md](./docs/接口文档.md)，根目录旧版接口设计文档已清理
+
+### 10.1 演示数据与接口脚本
+
+- 演示数据脚本：[backend/src/main/resources/sql/demo-data.sql](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/backend/src/main/resources/sql/demo-data.sql)
+- 接口演示脚本：[backend/api-demo.http](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/backend/api-demo.http)
+- Windows 配置脚本：[scripts/setup-windows.ps1](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/scripts/setup-windows.ps1)
+- Ubuntu 配置脚本：[scripts/setup-ubuntu.sh](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/scripts/setup-ubuntu.sh)
 
 ## 11. 常见问题
 
@@ -397,10 +456,11 @@ npm run build
 ## 12. 建议的下一步
 
 当前仓库已经完成第四次迭代范围，建议优先按 [第四次迭代范围与目标.md](./docs/第四次迭代范围与目标.md) 和 [需求实现对应矩阵.md](./docs/需求实现对应矩阵.md) 做验收走查。
+部署和日常运维按 [运维部署手册.md](./docs/运维部署手册.md) 执行。
 
 后续优先事项建议如下：
 
-1. 若课程展示需要真实外部集成，再接入真实 SMTP、短信服务、支付网关和对象存储实现类。
+1. 若课程展示需要真实邮件演示，配置并联调 SMTP 账号；若需要进一步生产化，再接入真实短信服务、支付网关和对象存储实现类。
 2. 若项目继续长期维护，再将当前轻量迁移器切换为 Flyway 或 Liquibase，并为已有库制定 baseline 方案。
 3. 继续补齐前端交互回归测试和更完整的数据层集成测试。
 4. 继续同步旧文档和最新概要设计，避免说明文档与代码口径再次漂移。
