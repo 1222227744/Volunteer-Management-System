@@ -93,6 +93,9 @@ public class ExternalNotificationService {
         if (channel == ExternalNotificationChannel.SMS) {
             return user.getPhone();
         }
+        if (user.getUsername() != null && user.getUsername().contains("@")) {
+            return user.getUsername();
+        }
         return user.getUsername() + "@example.local";
     }
 

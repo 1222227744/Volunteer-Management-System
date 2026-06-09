@@ -50,3 +50,18 @@ vms:
       secret: ${VMS_JWT_SECRET:dev-only-change-this-jwt-secret-at-least-32chars}
       ttl-seconds: ${VMS_JWT_TTL_SECONDS:86400}
       issuer: ${VMS_JWT_ISSUER:volunteer-service}
+  external:
+    email:
+      enabled: ${VMS_EMAIL_ENABLED:false}
+      host: ${VMS_EMAIL_HOST:}
+      port: ${VMS_EMAIL_PORT:465}
+      username: ${VMS_EMAIL_USERNAME:}
+      password: ${VMS_EMAIL_PASSWORD:}
+      from: ${VMS_EMAIL_FROM:}
+      from-name: ${VMS_EMAIL_FROM_NAME:志愿者服务管理系统}
+      auth: ${VMS_EMAIL_AUTH:true}
+      ssl-enabled: ${VMS_EMAIL_SSL_ENABLED:true}
+      start-tls-enabled: ${VMS_EMAIL_STARTTLS_ENABLED:false}
+      connection-timeout-millis: ${VMS_EMAIL_CONNECTION_TIMEOUT_MILLIS:10000}
+      timeout-millis: ${VMS_EMAIL_TIMEOUT_MILLIS:10000}
+      write-timeout-millis: ${VMS_EMAIL_WRITE_TIMEOUT_MILLIS:10000}

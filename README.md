@@ -322,6 +322,18 @@ npm run build
 - `VMS_BOOTSTRAP_ENABLED`：是否自动初始化默认账号，默认 `false`
 - `VMS_BOOTSTRAP_ADMIN_*`：默认管理员信息
 - `VMS_BOOTSTRAP_ORGANIZER_*`：默认组织方信息
+- `VMS_EMAIL_ENABLED`：是否启用真实 SMTP 邮件发送，默认 `false`
+- `VMS_EMAIL_HOST` / `VMS_EMAIL_PORT`：SMTP 服务器地址和端口
+- `VMS_EMAIL_USERNAME` / `VMS_EMAIL_PASSWORD`：SMTP 登录账号和授权码或密码
+- `VMS_EMAIL_FROM` / `VMS_EMAIL_FROM_NAME`：邮件发件地址和发件人名称
+
+真实邮箱说明：
+
+- 默认不启用真实邮件，外部通知仍使用课程版模拟发送。
+- 启用 `VMS_EMAIL_ENABLED=true` 后，EMAIL 通道会通过 SMTP 真实发送。
+- 当前系统复用用户 `username` 作为邮件收件地址；需要真实发送时，请让接收用户使用邮箱格式用户名注册。
+- 常见 465 端口配置为 `VMS_EMAIL_SSL_ENABLED=true`、`VMS_EMAIL_STARTTLS_ENABLED=false`。
+- 常见 587 端口配置为 `VMS_EMAIL_SSL_ENABLED=false`、`VMS_EMAIL_STARTTLS_ENABLED=true`。
 
 ### 前端环境文件
 
@@ -349,7 +361,7 @@ npm run build
 - 登录页取消了写死的默认账号密码预填
 - `.gitignore` 已忽略真实 `.env` 文件，避免泄露本机密码
 - 已补充需求实现对应矩阵、可选演示数据初始化、数据库兼容迁移、版本化迁移脚本、默认账号昵称纠偏、JWT 登录态和 Axios 客户端
-- v4 已补齐服务记录更正闭环、外部通知发送适配端口、模拟支付网关适配端口、本地文件对象存储适配端口、API 安全响应头和 systemd 示例配置
+- v4 已补齐服务记录更正闭环、真实 SMTP 邮件发送适配、外部通知发送适配端口、模拟支付网关适配端口、本地文件对象存储适配端口、API 安全响应头和 systemd 示例配置
 
 ## 11. 常见问题
 
@@ -396,6 +408,6 @@ npm run build
 以下内容保留为后续扩展，而不是当前 v4 强制范围：
 
 - `Redis` 或数据库持久会话
-- 真实短信、真实邮件、真实支付接口
+- 真实短信、真实支付接口
 - 第三方对象存储和更细粒度文件访问策略
 - 独立“支持者/捐赠者”账号体系
