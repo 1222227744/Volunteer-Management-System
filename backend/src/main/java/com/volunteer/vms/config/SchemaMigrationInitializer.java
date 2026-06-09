@@ -262,6 +262,16 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V3_036",
                     "补充故障处理状态时间索引",
                     "sql/migrations/V3_036__add_incident_status_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V4_001",
+                    "创建服务记录更正申请表",
+                    "sql/migrations/V4_001__create_service_record_corrections.sql"
+            ),
+            new MigrationDefinition(
+                    "V4_002",
+                    "补充服务记录更正查询索引",
+                    "sql/migrations/V4_002__add_service_record_correction_indexes.sql"
             )
     );
 
@@ -361,6 +371,8 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_034" -> decideTableMigration("system_configs");
             case "V3_035" -> decideTableMigration("incident_records");
             case "V3_036" -> decideIndexMigration("incident_records", "idx_incident_records_status_created_at");
+            case "V4_001" -> decideTableMigration("service_record_corrections");
+            case "V4_002" -> decideServiceRecordCorrectionIndexMigration();
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }
@@ -522,6 +534,18 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             return baseline("活动考勤更正索引已存在");
         }
         return execute("缺少活动考勤更正查询索引");
+    }
+
+    private MigrationDecision decideServiceRecordCorrectionIndexMigration() {
+        if (!tableExists("service_record_corrections")) {
+            return baseline("service_record_corrections 表尚不存在");
+        }
+        if (indexExists("service_record_corrections", "idx_service_record_corrections_user_requested")
+                && indexExists("service_record_corrections", "idx_service_record_corrections_activity_requested")
+                && indexExists("service_record_corrections", "idx_service_record_corrections_status_requested")) {
+            return baseline("服务记录更正索引已存在");
+        }
+        return execute("缺少服务记录更正查询索引");
     }
 
     private MigrationDecision decideActivityCheckCodeNormalizeMigration() {

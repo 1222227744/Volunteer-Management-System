@@ -106,6 +106,12 @@ export const incidentStatusLabels = {
   CLOSED: "已关闭"
 };
 
+export const serviceRecordCorrectionStatusLabels = {
+  PENDING: "待审核",
+  APPROVED: "已通过",
+  REJECTED: "已驳回"
+};
+
 export function formatActivityStatus(status) {
   return activityStatusLabels[status] || status || "-";
 }
@@ -164,4 +170,8 @@ export function formatIncidentSeverity(severity) {
 
 export function formatIncidentStatus(status) {
   return incidentStatusLabels[status] || status || "-";
+}
+
+export function formatServiceRecordCorrectionStatus(status) {
+  return serviceRecordCorrectionStatusLabels[status] || status || "-";
 }

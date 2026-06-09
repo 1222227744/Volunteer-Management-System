@@ -210,6 +210,18 @@ export const serviceRecordApi = {
     apiRequest("/api/service-records", {
       method: "POST",
       body: JSON.stringify(payload)
+    }),
+  createCorrection: (recordId, payload) =>
+    apiRequest(`/api/service-records/${recordId}/corrections`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+  myCorrections: () => apiRequest("/api/service-records/corrections/my"),
+  corrections: () => apiRequest("/api/service-records/corrections"),
+  reviewCorrection: (correctionId, status, comment = "") =>
+    apiRequest(`/api/service-records/corrections/${correctionId}/review`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, comment })
     })
 };
 

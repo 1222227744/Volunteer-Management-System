@@ -79,6 +79,30 @@ CREATE TABLE IF NOT EXISTS service_records (
   CONSTRAINT uk_service_record_activity_user UNIQUE (activity_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS service_record_corrections (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  service_record_id BIGINT NOT NULL,
+  activity_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  requester_id BIGINT NOT NULL,
+  requester_name VARCHAR(50) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  old_hours DECIMAL(6,2) NOT NULL,
+  new_hours DECIMAL(6,2) NOT NULL,
+  old_achievement VARCHAR(1000) NOT NULL,
+  new_achievement VARCHAR(1000) NOT NULL,
+  old_evidence_url VARCHAR(500) NULL,
+  new_evidence_url VARCHAR(500) NULL,
+  old_evidence_file_id BIGINT NULL,
+  new_evidence_file_id BIGINT NULL,
+  reason VARCHAR(500) NOT NULL,
+  review_comment VARCHAR(500) NULL,
+  reviewed_by BIGINT NULL,
+  reviewed_by_name VARCHAR(50) NULL,
+  requested_at DATETIME NOT NULL,
+  reviewed_at DATETIME NULL
+);
+
 CREATE TABLE IF NOT EXISTS activity_feedbacks (
   id BIGINT PRIMARY KEY AUTO_INCREMENT,
   activity_id BIGINT NOT NULL,
@@ -282,6 +306,9 @@ CREATE INDEX idx_registrations_user_registered_at ON activity_registrations (use
 CREATE INDEX idx_attendance_corrections_activity_corrected ON activity_attendance_corrections (activity_id, corrected_at);
 CREATE INDEX idx_attendance_corrections_registration_corrected ON activity_attendance_corrections (registration_id, corrected_at);
 CREATE INDEX idx_service_records_user_created_at ON service_records (user_id, created_at);
+CREATE INDEX idx_service_record_corrections_user_requested ON service_record_corrections (user_id, requested_at);
+CREATE INDEX idx_service_record_corrections_activity_requested ON service_record_corrections (activity_id, requested_at);
+CREATE INDEX idx_service_record_corrections_status_requested ON service_record_corrections (status, requested_at);
 CREATE INDEX idx_feedbacks_user_created_at ON feedbacks (user_id, created_at);
 CREATE INDEX idx_public_resources_status_created_at ON public_resources (status, created_at);
 CREATE INDEX idx_help_needs_status_created_at ON help_needs (status, created_at);

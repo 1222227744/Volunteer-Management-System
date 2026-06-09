@@ -1,0 +1,8 @@
+CREATE INDEX idx_service_record_corrections_user_requested
+ON service_record_corrections (user_id, requested_at);
+
+CREATE INDEX idx_service_record_corrections_activity_requested
+ON service_record_corrections (activity_id, requested_at);
+
+CREATE INDEX idx_service_record_corrections_status_requested
+ON service_record_corrections (status, requested_at);
