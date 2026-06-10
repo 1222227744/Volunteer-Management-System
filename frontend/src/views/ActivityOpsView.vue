@@ -27,6 +27,7 @@
                 <option value="DRAFT">{{ formatActivityStatus("DRAFT") }}</option>
                 <option value="PUBLISHED">{{ formatActivityStatus("PUBLISHED") }}</option>
                 <option value="ONGOING">{{ formatActivityStatus("ONGOING") }}</option>
+                <option value="OFFLINE">{{ formatActivityStatus("OFFLINE") }}</option>
                 <option value="FINISHED">{{ formatActivityStatus("FINISHED") }}</option>
                 <option value="CANCELLED">{{ formatActivityStatus("CANCELLED") }}</option>
               </select>
@@ -44,6 +45,24 @@
         <p class="muted">
           活动评价：平均 {{ feedbackSummary.averageRating || 0 }} / 5，共 {{ feedbackSummary.count || 0 }} 条
         </p>
+        <div class="card" style="margin: 12px 0;">
+          <div class="stack" style="justify-content: space-between; align-items: center;">
+            <div>
+              <strong>自助签到码</strong>
+              <p class="muted" style="margin: 6px 0 0;">
+                志愿者可在“我的报名”中输入该签到码完成自助签到或签退。
+              </p>
+            </div>
+            <div class="stack" style="align-items: center;">
+              <span class="tag check-code">{{ selectedActivity.checkCode || "未生成" }}</span>
+              <button class="btn ghost" @click="refreshCheckCode">刷新签到码</button>
+            </div>
+          </div>
+        </div>
+        <div class="field" style="margin: 12px 0;">
+          <label>报名审核/取消说明</label>
+          <input v-model.trim="reviewComment" placeholder="可填写通过、驳回或取消报名的处理说明" />
+        </div>
         <div class="list">
           <article class="card" v-for="item in registrations" :key="item.registrationId">
             <div class="stack" style="justify-content: space-between; align-items: center;">
@@ -58,6 +77,21 @@
                 <p v-if="item.checkOutAt" class="muted" style="margin: 6px 0 0;">
                   签退时间：{{ formatDate(item.checkOutAt) }}
                 </p>
+                <p v-if="item.reviewComment" class="muted" style="margin: 6px 0 0;">
+                  处理说明：{{ item.reviewComment }}
+                </p>
+                <p v-if="item.reviewedAt" class="muted" style="margin: 6px 0 0;">
+                  处理时间：{{ formatDate(item.reviewedAt) }}
+                </p>
+                <div v-if="item.corrections?.length" class="correction-box">
+                  <strong>考勤更正记录</strong>
+                  <p v-for="correction in item.corrections" :key="correction.id" class="muted" style="margin: 6px 0 0;">
+                    {{ formatDate(correction.correctedAt) }}，
+                    {{ correction.correctedByName }}执行“{{ formatAttendanceCorrectionAction(correction.action) }}”，
+                    {{ formatRegistrationStatus(correction.beforeStatus) }} -> {{ formatRegistrationStatus(correction.afterStatus) }}，
+                    原因：{{ correction.reason }}
+                  </p>
+                </div>
               </div>
               <div class="stack">
                 <button
@@ -76,6 +110,13 @@
                 </button>
                 <button
                   v-if="item.status === 'APPROVED'"
+                  class="btn danger"
+                  @click="reviewRegistration(item.userId, 'CANCELLED')"
+                >
+                  取消报名
+                </button>
+                <button
+                  v-if="item.status === 'APPROVED'"
                   class="btn primary"
                   @click="checkIn(item.userId)"
                 >
@@ -88,12 +129,39 @@
                 >
                   签退
                 </button>
+                <button class="btn ghost" @click="startCorrection(item)">
+                  更正考勤
+                </button>
                 <span
                   v-if="['REJECTED', 'CANCELLED', 'CHECKED_OUT', 'COMPLETED'].includes(item.status)"
                   class="tag"
                 >
                   {{ formatRegistrationStatus(item.status) }}
                 </span>
+              </div>
+            </div>
+            <div v-if="correctionForm.registrationId === item.registrationId" class="card" style="margin-top: 12px;">
+              <h3>异常考勤更正</h3>
+              <div class="grid two">
+                <div class="field">
+                  <label>更正动作</label>
+                  <select v-model="correctionForm.action">
+                    <option value="SET_APPROVED">{{ formatAttendanceCorrectionAction("SET_APPROVED") }}</option>
+                    <option value="SET_CHECKED_IN">{{ formatAttendanceCorrectionAction("SET_CHECKED_IN") }}</option>
+                    <option value="SET_CHECKED_OUT">{{ formatAttendanceCorrectionAction("SET_CHECKED_OUT") }}</option>
+                    <option value="CLEAR_CHECK_IN">{{ formatAttendanceCorrectionAction("CLEAR_CHECK_IN") }}</option>
+                    <option value="CLEAR_CHECK_OUT">{{ formatAttendanceCorrectionAction("CLEAR_CHECK_OUT") }}</option>
+                    <option value="SET_CANCELLED">{{ formatAttendanceCorrectionAction("SET_CANCELLED") }}</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>更正原因</label>
+                  <input v-model.trim="correctionForm.reason" placeholder="需填写现场核验、补签或误操作等原因" />
+                </div>
+              </div>
+              <div class="stack" style="margin-top: 10px;">
+                <button class="btn primary" @click="submitCorrection(item.userId)">提交更正</button>
+                <button class="btn ghost" @click="cancelCorrection">取消</button>
               </div>
             </div>
           </article>
@@ -110,13 +178,23 @@
 import { computed, onMounted, ref } from "vue";
 import { activityApi, activityFeedbackApi } from "../api";
 import { authState } from "../stores/auth";
-import { formatActivityStatus, formatRegistrationStatus } from "../utils/labels";
+import {
+  formatActivityStatus,
+  formatAttendanceCorrectionAction,
+  formatRegistrationStatus
+} from "../utils/labels";
 
 const activities = ref([]);
 const registrations = ref([]);
 const feedbackSummary = ref({ averageRating: 0, count: 0, items: [] });
 const selectedActivityId = ref("");
 const nextStatus = ref("PUBLISHED");
+const reviewComment = ref("");
+const correctionForm = ref({
+  registrationId: null,
+  action: "SET_CHECKED_IN",
+  reason: ""
+});
 
 const message = ref("");
 const ok = ref(false);
@@ -164,6 +242,22 @@ async function onSelectActivity() {
   feedbackSummary.value = feedbackData;
 }
 
+function startCorrection(item) {
+  correctionForm.value = {
+    registrationId: item.registrationId,
+    action: item.status === "CHECKED_IN" ? "SET_CHECKED_OUT" : "SET_CHECKED_IN",
+    reason: ""
+  };
+}
+
+function cancelCorrection() {
+  correctionForm.value = {
+    registrationId: null,
+    action: "SET_CHECKED_IN",
+    reason: ""
+  };
+}
+
 async function updateStatus() {
   message.value = "";
   ok.value = false;
@@ -181,6 +275,23 @@ async function updateStatus() {
   }
 }
 
+async function refreshCheckCode() {
+  message.value = "";
+  ok.value = false;
+  if (!selectedActivityId.value) {
+    return;
+  }
+  try {
+    await activityApi.refreshCheckCode(selectedActivityId.value);
+    ok.value = true;
+    message.value = "签到码已刷新";
+    await loadActivities();
+    await onSelectActivity();
+  } catch (err) {
+    message.value = err.message;
+  }
+}
+
 async function reviewRegistration(userId, status) {
   message.value = "";
   ok.value = false;
@@ -188,9 +299,10 @@ async function reviewRegistration(userId, status) {
     return;
   }
   try {
-    await activityApi.reviewRegistration(selectedActivityId.value, userId, status);
+    await activityApi.reviewRegistration(selectedActivityId.value, userId, status, reviewComment.value);
     ok.value = true;
-    message.value = status === "APPROVED" ? "报名审核通过" : "报名已驳回";
+    message.value = status === "APPROVED" ? "报名审核通过" : status === "REJECTED" ? "报名已驳回" : "报名已取消";
+    reviewComment.value = "";
     await loadActivities();
     await onSelectActivity();
   } catch (err) {
@@ -225,6 +337,32 @@ async function checkOut(userId) {
     await activityApi.checkOut(selectedActivityId.value, userId);
     ok.value = true;
     message.value = "签退成功";
+    await loadActivities();
+    await onSelectActivity();
+  } catch (err) {
+    message.value = err.message;
+  }
+}
+
+async function submitCorrection(userId) {
+  message.value = "";
+  ok.value = false;
+  if (!selectedActivityId.value) {
+    return;
+  }
+  if (!correctionForm.value.reason) {
+    message.value = "请填写考勤更正原因";
+    return;
+  }
+  try {
+    await activityApi.correctAttendance(selectedActivityId.value, {
+      userId,
+      action: correctionForm.value.action,
+      reason: correctionForm.value.reason
+    });
+    ok.value = true;
+    message.value = "考勤更正已提交";
+    cancelCorrection();
     await loadActivities();
     await onSelectActivity();
   } catch (err) {

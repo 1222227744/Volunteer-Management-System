@@ -18,10 +18,17 @@ import java.util.Set;
 public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationWebSocketHandler webSocketHandler;
+    private final ExternalNotificationService externalNotificationService;
 
-    public NotificationService(NotificationRepository notificationRepository, UserRepository userRepository) {
+    public NotificationService(NotificationRepository notificationRepository,
+                               UserRepository userRepository,
+                               NotificationWebSocketHandler webSocketHandler,
+                               ExternalNotificationService externalNotificationService) {
         this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
+        this.webSocketHandler = webSocketHandler;
+        this.externalNotificationService = externalNotificationService;
     }
 
     @Transactional
@@ -33,7 +40,9 @@ public class NotificationService {
         notification.setUserId(userId);
         notification.setTitle(title);
         notification.setContent(content);
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        pushRealtime(saved);
+        pushExternal(saved);
     }
 
     @Transactional
@@ -54,7 +63,8 @@ public class NotificationService {
         List<Notification> notifications = distinctUserIds.stream()
                 .map(userId -> buildNotification(userId, title, content, now))
                 .toList();
-        notificationRepository.saveAll(notifications);
+        notificationRepository.saveAll(notifications).forEach(this::pushRealtime);
+        notifications.forEach(this::pushExternal);
     }
 
     @Transactional
@@ -69,5 +79,17 @@ public class NotificationService {
         notification.setContent(content);
         notification.setCreatedAt(createdAt);
         return notification;
+    }
+
+    private void pushRealtime(Notification notification) {
+        if (webSocketHandler != null) {
+            webSocketHandler.push(notification);
+        }
+    }
+
+    private void pushExternal(Notification notification) {
+        if (externalNotificationService != null) {
+            externalNotificationService.enqueueForUser(notification.getUserId(), notification.getTitle(), notification.getContent());
+        }
     }
 }

@@ -6,12 +6,12 @@ spring:
   config:
     import: optional:file:.env[.properties],optional:file:./backend/.env[.properties]
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/volunteer_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://127.0.0.1:3306/volunteer_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8mb4}
     username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${SPRING_DATASOURCE_PASSWORD:change_me}
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:none}
     open-in-view: false
     properties:
       hibernate:
@@ -20,15 +20,46 @@ spring:
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:50MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:55MB}
 
 vms:
   bootstrap:
-    enabled: ${VMS_BOOTSTRAP_ENABLED:true}
+    enabled: ${VMS_BOOTSTRAP_ENABLED:false}
     admin-username: ${VMS_BOOTSTRAP_ADMIN_USERNAME:admin}
     admin-password: ${VMS_BOOTSTRAP_ADMIN_PASSWORD:admin123}
     admin-display-name: ${VMS_BOOTSTRAP_ADMIN_DISPLAY_NAME:系统管理员}
     organizer-username: ${VMS_BOOTSTRAP_ORGANIZER_USERNAME:organizer}
     organizer-password: ${VMS_BOOTSTRAP_ORGANIZER_PASSWORD:organizer123}
     organizer-display-name: ${VMS_BOOTSTRAP_ORGANIZER_DISPLAY_NAME:组织方账号}
-  demo-data:
-    enabled: ${VMS_DEMO_DATA_ENABLED:true}
+  files:
+    storage-dir: ${VMS_FILE_STORAGE_DIR:./uploads}
+    image-max-bytes: ${VMS_FILE_IMAGE_MAX_BYTES:5242880}
+    attachment-max-bytes: ${VMS_FILE_ATTACHMENT_MAX_BYTES:52428800}
+  cors:
+    allowed-origin-patterns: ${VMS_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:5173,http://127.0.0.1:5173}
+    allowed-methods: ${VMS_CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,PATCH,OPTIONS}
+    allowed-headers: ${VMS_CORS_ALLOWED_HEADERS:Authorization,Content-Type}
+    allow-credentials: ${VMS_CORS_ALLOW_CREDENTIALS:false}
+  auth:
+    jwt:
+      secret: ${VMS_JWT_SECRET:dev-only-change-this-jwt-secret-at-least-32chars}
+      ttl-seconds: ${VMS_JWT_TTL_SECONDS:86400}
+      issuer: ${VMS_JWT_ISSUER:volunteer-service}
+  external:
+    email:
+      enabled: ${VMS_EMAIL_ENABLED:false}
+      host: ${VMS_EMAIL_HOST:}
+      port: ${VMS_EMAIL_PORT:465}
+      username: ${VMS_EMAIL_USERNAME:}
+      password: ${VMS_EMAIL_PASSWORD:}
+      from: ${VMS_EMAIL_FROM:}
+      from-name: ${VMS_EMAIL_FROM_NAME:志愿者服务管理系统}
+      auth: ${VMS_EMAIL_AUTH:true}
+      ssl-enabled: ${VMS_EMAIL_SSL_ENABLED:true}
+      start-tls-enabled: ${VMS_EMAIL_STARTTLS_ENABLED:false}
+      connection-timeout-millis: ${VMS_EMAIL_CONNECTION_TIMEOUT_MILLIS:10000}
+      timeout-millis: ${VMS_EMAIL_TIMEOUT_MILLIS:10000}
+      write-timeout-millis: ${VMS_EMAIL_WRITE_TIMEOUT_MILLIS:10000}

@@ -9,6 +9,7 @@ import com.volunteer.vms.audit.AuditLogService;
 import com.volunteer.vms.common.ApiResponse;
 import com.volunteer.vms.common.AuthUtils;
 import com.volunteer.vms.common.BizException;
+import com.volunteer.vms.file.FileStorageService;
 import com.volunteer.vms.notification.NotificationService;
 import com.volunteer.vms.user.Role;
 import com.volunteer.vms.user.User;
@@ -39,24 +40,30 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/service-records")
 public class ServiceRecordController {
     private final ServiceRecordRepository serviceRecordRepository;
+    private final ServiceRecordCorrectionRepository correctionRepository;
     private final ActivityRepository activityRepository;
     private final ActivityRegistrationRepository registrationRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final AuditLogService auditLogService;
+    private final FileStorageService fileStorageService;
 
     public ServiceRecordController(ServiceRecordRepository serviceRecordRepository,
+                                   ServiceRecordCorrectionRepository correctionRepository,
                                    ActivityRepository activityRepository,
                                    ActivityRegistrationRepository registrationRepository,
                                    UserRepository userRepository,
                                    NotificationService notificationService,
-                                   AuditLogService auditLogService) {
+                                   AuditLogService auditLogService,
+                                   FileStorageService fileStorageService) {
         this.serviceRecordRepository = serviceRecordRepository;
+        this.correctionRepository = correctionRepository;
         this.activityRepository = activityRepository;
         this.registrationRepository = registrationRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.auditLogService = auditLogService;
+        this.fileStorageService = fileStorageService;
     }
 
     @PostMapping
@@ -86,12 +93,14 @@ public class ServiceRecordController {
         record.setHours(createRequest.hours().setScale(2, RoundingMode.HALF_UP));
         record.setAchievement(createRequest.achievement());
         record.setEvidenceUrl(createRequest.evidenceUrl());
-        serviceRecordRepository.save(record);
+        record.setEvidenceFileId(createRequest.evidenceFileId());
+        ServiceRecord savedRecord = serviceRecordRepository.save(record);
+        bindFileIfPresent(savedRecord.getEvidenceFileId(), "SERVICE_RECORD", savedRecord.getId());
 
         registration.setStatus(RegistrationStatus.COMPLETED);
         registrationRepository.save(registration);
 
-        int gainedPoints = createRequest.hours().multiply(BigDecimal.TEN).intValue();
+        int gainedPoints = calculatePoints(createRequest.hours());
         targetUser.setPoints(targetUser.getPoints() + gainedPoints);
         userRepository.save(targetUser);
         notificationService.notifyUser(
@@ -104,7 +113,7 @@ public class ServiceRecordController {
                 currentUser,
                 "SERVICE_RECORD_CREATED",
                 "SERVICE_RECORD",
-                record.getId(),
+                savedRecord.getId(),
                 "活动ID=" + createRequest.activityId() + ", 志愿者ID=" + createRequest.userId() + ", 时长=" + createRequest.hours()
         );
         return ApiResponse.success();
@@ -123,6 +132,129 @@ public class ServiceRecordController {
         User currentUser = AuthUtils.currentUser(request);
         AuthUtils.requireRole(currentUser, Role.ORGANIZER, Role.ADMIN);
         return buildUserRecordsResponse(currentUser, userId, activityId);
+    }
+
+    @PostMapping("/{recordId}/corrections")
+    @Transactional
+    public ApiResponse<ServiceRecordCorrectionResponse> createCorrection(HttpServletRequest request,
+                                                                         @PathVariable Long recordId,
+                                                                         @Valid @RequestBody CreateServiceRecordCorrectionRequest correctionRequest) {
+        User currentUser = AuthUtils.currentUser(request);
+        ServiceRecord record = serviceRecordRepository.findById(recordId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "服务记录不存在"));
+        if (!currentUser.getId().equals(record.getUserId())) {
+            throw new BizException(HttpStatus.FORBIDDEN, "只能为自己的服务记录提交更正申请");
+        }
+        if (correctionRepository.existsByServiceRecordIdAndStatus(recordId, ServiceRecordCorrectionStatus.PENDING)) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "该服务记录已有待审核更正申请，请勿重复提交");
+        }
+        Activity activity = activityRepository.findById(record.getActivityId())
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "活动不存在"));
+
+        ServiceRecordCorrection correction = new ServiceRecordCorrection();
+        correction.setServiceRecordId(record.getId());
+        correction.setActivityId(record.getActivityId());
+        correction.setUserId(record.getUserId());
+        correction.setRequesterId(currentUser.getId());
+        correction.setRequesterName(currentUser.getDisplayName());
+        correction.setStatus(ServiceRecordCorrectionStatus.PENDING);
+        correction.setOldHours(record.getHours());
+        correction.setNewHours(correctionRequest.hours().setScale(2, RoundingMode.HALF_UP));
+        correction.setOldAchievement(record.getAchievement());
+        correction.setNewAchievement(correctionRequest.achievement());
+        correction.setOldEvidenceUrl(record.getEvidenceUrl());
+        correction.setNewEvidenceUrl(correctionRequest.evidenceUrl());
+        correction.setOldEvidenceFileId(record.getEvidenceFileId());
+        correction.setNewEvidenceFileId(correctionRequest.evidenceFileId());
+        correction.setReason(correctionRequest.reason());
+        ServiceRecordCorrection saved = correctionRepository.save(correction);
+        bindFileIfPresent(saved.getNewEvidenceFileId(), "SERVICE_RECORD_CORRECTION", saved.getId());
+
+        notificationService.notifyUser(
+                activity.getOrganizerId(),
+                "收到服务记录更正申请",
+                currentUser.getDisplayName() + " 对活动《" + activity.getTitle() + "》的服务记录提交了更正申请，请及时处理。"
+        );
+        auditLogService.log(
+                request,
+                currentUser,
+                "SERVICE_RECORD_CORRECTION_REQUESTED",
+                "SERVICE_RECORD_CORRECTION",
+                saved.getId(),
+                "服务记录ID=" + recordId + ", 原时长=" + record.getHours() + ", 申请时长=" + saved.getNewHours()
+        );
+        return ApiResponse.success(ServiceRecordCorrectionResponse.from(saved, activity));
+    }
+
+    @GetMapping("/corrections/my")
+    public ApiResponse<List<ServiceRecordCorrectionResponse>> myCorrections(HttpServletRequest request) {
+        User currentUser = AuthUtils.currentUser(request);
+        return ApiResponse.success(buildCorrectionResponses(
+                correctionRepository.findByUserIdOrderByRequestedAtDesc(currentUser.getId())
+        ));
+    }
+
+    @GetMapping("/corrections")
+    public ApiResponse<List<ServiceRecordCorrectionResponse>> corrections(HttpServletRequest request) {
+        User currentUser = AuthUtils.currentUser(request);
+        AuthUtils.requireRole(currentUser, Role.ORGANIZER, Role.ADMIN);
+        List<ServiceRecordCorrection> corrections;
+        if (currentUser.getRole() == Role.ADMIN) {
+            corrections = correctionRepository.findAllByOrderByRequestedAtDesc();
+        } else {
+            List<Long> activityIds = activityRepository.findIdsByOrganizerId(currentUser.getId());
+            corrections = activityIds.isEmpty()
+                    ? List.of()
+                    : correctionRepository.findByActivityIdInOrderByRequestedAtDesc(activityIds);
+        }
+        return ApiResponse.success(buildCorrectionResponses(corrections));
+    }
+
+    @PatchMapping("/corrections/{correctionId}/review")
+    @Transactional
+    public ApiResponse<ServiceRecordCorrectionResponse> reviewCorrection(HttpServletRequest request,
+                                                                         @PathVariable Long correctionId,
+                                                                         @Valid @RequestBody ReviewServiceRecordCorrectionRequest reviewRequest) {
+        User currentUser = AuthUtils.currentUser(request);
+        AuthUtils.requireRole(currentUser, Role.ORGANIZER, Role.ADMIN);
+        if (reviewRequest.status() != ServiceRecordCorrectionStatus.APPROVED
+                && reviewRequest.status() != ServiceRecordCorrectionStatus.REJECTED) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "服务记录更正审核只允许设置为 APPROVED 或 REJECTED");
+        }
+        ServiceRecordCorrection correction = correctionRepository.findById(correctionId)
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "更正申请不存在"));
+        if (correction.getStatus() != ServiceRecordCorrectionStatus.PENDING) {
+            throw new BizException(HttpStatus.BAD_REQUEST, "该更正申请已处理，不能重复审核");
+        }
+        Activity activity = activityRepository.findById(correction.getActivityId())
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "活动不存在"));
+        ensureCanManageActivity(currentUser, activity);
+
+        if (reviewRequest.status() == ServiceRecordCorrectionStatus.APPROVED) {
+            applyCorrection(correction);
+        }
+        correction.setStatus(reviewRequest.status());
+        correction.setReviewComment(reviewRequest.comment());
+        correction.setReviewedBy(currentUser.getId());
+        correction.setReviewedByName(currentUser.getDisplayName());
+        correction.setReviewedAt(LocalDateTime.now());
+        ServiceRecordCorrection saved = correctionRepository.save(correction);
+
+        notificationService.notifyUser(
+                correction.getUserId(),
+                "服务记录更正审核完成",
+                buildCorrectionReviewMessage(activity, saved)
+        );
+        auditLogService.log(
+                request,
+                currentUser,
+                "SERVICE_RECORD_CORRECTION_REVIEWED",
+                "SERVICE_RECORD_CORRECTION",
+                saved.getId(),
+                "服务记录ID=" + saved.getServiceRecordId() + ", 审核结果=" + saved.getStatus()
+                        + ", 说明=" + nullToDash(saved.getReviewComment())
+        );
+        return ApiResponse.success(ServiceRecordCorrectionResponse.from(saved, activity));
     }
 
     private ApiResponse<Map<String, Object>> buildUserRecordsResponse(Long userId) {
@@ -171,6 +303,67 @@ public class ServiceRecordController {
         ));
     }
 
+    private void applyCorrection(ServiceRecordCorrection correction) {
+        ServiceRecord record = serviceRecordRepository.findById(correction.getServiceRecordId())
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "服务记录不存在"));
+        User targetUser = userRepository.findById(correction.getUserId())
+                .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "志愿者不存在"));
+        int oldPoints = calculatePoints(record.getHours());
+        int newPoints = calculatePoints(correction.getNewHours());
+
+        record.setHours(correction.getNewHours());
+        record.setAchievement(correction.getNewAchievement());
+        record.setEvidenceUrl(correction.getNewEvidenceUrl());
+        record.setEvidenceFileId(correction.getNewEvidenceFileId());
+        ServiceRecord savedRecord = serviceRecordRepository.save(record);
+        bindFileIfPresent(savedRecord.getEvidenceFileId(), "SERVICE_RECORD", savedRecord.getId());
+
+        int adjustedPoints = targetUser.getPoints() + newPoints - oldPoints;
+        targetUser.setPoints(Math.max(0, adjustedPoints));
+        userRepository.save(targetUser);
+    }
+
+    private List<ServiceRecordCorrectionResponse> buildCorrectionResponses(List<ServiceRecordCorrection> corrections) {
+        Map<Long, Activity> activityMap = activityRepository.findAllById(
+                corrections.stream().map(ServiceRecordCorrection::getActivityId).collect(Collectors.toSet())
+        ).stream().collect(Collectors.toMap(Activity::getId, item -> item));
+        return corrections.stream()
+                .map(correction -> ServiceRecordCorrectionResponse.from(correction, activityMap.get(correction.getActivityId())))
+                .toList();
+    }
+
+    private int calculatePoints(BigDecimal hours) {
+        return hours.multiply(BigDecimal.TEN).intValue();
+    }
+
+    private void ensureCanManageActivity(User currentUser, Activity activity) {
+        if (currentUser.getRole() == Role.ADMIN) {
+            return;
+        }
+        if (!currentUser.getId().equals(activity.getOrganizerId())) {
+            throw new BizException(HttpStatus.FORBIDDEN, "只能处理自己活动范围内的服务记录");
+        }
+    }
+
+    private String buildCorrectionReviewMessage(Activity activity, ServiceRecordCorrection correction) {
+        String action = correction.getStatus() == ServiceRecordCorrectionStatus.APPROVED ? "已通过" : "已驳回";
+        String message = "你在活动《" + activity.getTitle() + "》中的服务记录更正申请" + action + "。";
+        if (correction.getReviewComment() == null || correction.getReviewComment().isBlank()) {
+            return message;
+        }
+        return message + "处理说明：" + correction.getReviewComment();
+    }
+
+    private void bindFileIfPresent(Long fileId, String businessType, Long businessId) {
+        if (fileId != null && fileStorageService != null) {
+            fileStorageService.bindBusiness(fileId, businessType, businessId);
+        }
+    }
+
+    private String nullToDash(String value) {
+        return value == null || value.isBlank() ? "-" : value;
+    }
+
     public record CreateServiceRecordRequest(
             @NotNull(message = "用户ID不能为空")
             Long userId,
@@ -184,7 +377,33 @@ public class ServiceRecordController {
             @Size(max = 1000, message = "服务成果最多1000字")
             String achievement,
             @Size(max = 500, message = "证明链接最多500字")
-            String evidenceUrl
+            String evidenceUrl,
+            Long evidenceFileId
+    ) {
+    }
+
+    public record CreateServiceRecordCorrectionRequest(
+            @NotNull(message = "服务时长不能为空")
+            @DecimalMin(value = "0.5", message = "服务时长至少0.5小时")
+            @DecimalMax(value = "24.0", message = "服务时长不能超过24小时")
+            BigDecimal hours,
+            @NotBlank(message = "服务成果不能为空")
+            @Size(max = 1000, message = "服务成果最多1000字")
+            String achievement,
+            @Size(max = 500, message = "证明链接最多500字")
+            String evidenceUrl,
+            Long evidenceFileId,
+            @NotBlank(message = "更正原因不能为空")
+            @Size(max = 500, message = "更正原因最多500字")
+            String reason
+    ) {
+    }
+
+    public record ReviewServiceRecordCorrectionRequest(
+            @NotNull(message = "审核状态不能为空")
+            ServiceRecordCorrectionStatus status,
+            @Size(max = 500, message = "审核说明最多500字")
+            String comment
     ) {
     }
 
@@ -195,6 +414,7 @@ public class ServiceRecordController {
                                         BigDecimal hours,
                                         String achievement,
                                         String evidenceUrl,
+                                        Long evidenceFileId,
                                         LocalDateTime createdAt) {
         static ServiceRecordResponse from(ServiceRecord record, Activity activity) {
             return new ServiceRecordResponse(
@@ -205,7 +425,58 @@ public class ServiceRecordController {
                     record.getHours(),
                     record.getAchievement(),
                     record.getEvidenceUrl(),
+                    record.getEvidenceFileId(),
                     record.getCreatedAt()
+            );
+        }
+    }
+
+    public record ServiceRecordCorrectionResponse(Long id,
+                                                  Long serviceRecordId,
+                                                  Long activityId,
+                                                  String activityTitle,
+                                                  Long userId,
+                                                  Long requesterId,
+                                                  String requesterName,
+                                                  ServiceRecordCorrectionStatus status,
+                                                  BigDecimal oldHours,
+                                                  BigDecimal newHours,
+                                                  String oldAchievement,
+                                                  String newAchievement,
+                                                  String oldEvidenceUrl,
+                                                  String newEvidenceUrl,
+                                                  Long oldEvidenceFileId,
+                                                  Long newEvidenceFileId,
+                                                  String reason,
+                                                  String reviewComment,
+                                                  Long reviewedBy,
+                                                  String reviewedByName,
+                                                  LocalDateTime requestedAt,
+                                                  LocalDateTime reviewedAt) {
+        static ServiceRecordCorrectionResponse from(ServiceRecordCorrection correction, Activity activity) {
+            return new ServiceRecordCorrectionResponse(
+                    correction.getId(),
+                    correction.getServiceRecordId(),
+                    correction.getActivityId(),
+                    activity == null ? "未知活动" : activity.getTitle(),
+                    correction.getUserId(),
+                    correction.getRequesterId(),
+                    correction.getRequesterName(),
+                    correction.getStatus(),
+                    correction.getOldHours(),
+                    correction.getNewHours(),
+                    correction.getOldAchievement(),
+                    correction.getNewAchievement(),
+                    correction.getOldEvidenceUrl(),
+                    correction.getNewEvidenceUrl(),
+                    correction.getOldEvidenceFileId(),
+                    correction.getNewEvidenceFileId(),
+                    correction.getReason(),
+                    correction.getReviewComment(),
+                    correction.getReviewedBy(),
+                    correction.getReviewedByName(),
+                    correction.getRequestedAt(),
+                    correction.getReviewedAt()
             );
         }
     }

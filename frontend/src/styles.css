@@ -183,6 +183,12 @@ a {
   font-size: 12px;
 }
 
+.profile-card {
+  position: relative;
+  margin-top: 12px;
+  background: rgba(247, 255, 252, 0.94);
+}
+
 .page-wrap {
   width: min(1240px, calc(100vw - 28px));
   margin: 18px auto 28px;
@@ -448,6 +454,50 @@ select:focus {
   letter-spacing: 0.3px;
   position: relative;
   z-index: 1;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+th,
+td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13px;
+}
+
+th {
+  color: var(--text-sub);
+  font-weight: 700;
+  background: rgba(22, 69, 79, 0.07);
+}
+
+td strong,
+td span {
+  display: block;
+}
+
+.check-code {
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+.correction-box {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(199, 134, 35, 0.1);
+  border: 1px solid rgba(199, 134, 35, 0.18);
 }
 
 .panel,

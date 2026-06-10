@@ -27,6 +27,8 @@ public class Donation {
     @Column(length = 500)
     private String message;
 
+    private Long orderId;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -75,6 +77,14 @@ public class Donation {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public Long getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
     }
 
     public LocalDateTime getCreatedAt() {

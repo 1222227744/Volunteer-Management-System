@@ -1,0 +1,18 @@
+[Unit]
+Description=Volunteer Service Backend
+After=network.target mysql.service
+Wants=network.target
+
+[Service]
+Type=simple
+User=volunteer
+Group=volunteer
+WorkingDirectory=/opt/volunteer-service/backend
+EnvironmentFile=/opt/volunteer-service/backend/.env
+ExecStart=/usr/bin/java -jar /opt/volunteer-service/backend/volunteer-service-backend.jar
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target

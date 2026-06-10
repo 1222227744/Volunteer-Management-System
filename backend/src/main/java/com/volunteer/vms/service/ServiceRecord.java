@@ -33,6 +33,8 @@ public class ServiceRecord {
     @Column(length = 500)
     private String evidenceUrl;
 
+    private Long evidenceFileId;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -89,6 +91,14 @@ public class ServiceRecord {
 
     public void setEvidenceUrl(String evidenceUrl) {
         this.evidenceUrl = evidenceUrl;
+    }
+
+    public Long getEvidenceFileId() {
+        return evidenceFileId;
+    }
+
+    public void setEvidenceFileId(Long evidenceFileId) {
+        this.evidenceFileId = evidenceFileId;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS help_needs (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(120) NOT NULL,
+  requester VARCHAR(120) NOT NULL,
+  content VARCHAR(1000) NOT NULL,
+  quantity INT NOT NULL,
+  unit VARCHAR(40) NULL,
+  location VARCHAR(200) NOT NULL,
+  required_at DATETIME NULL,
+  status VARCHAR(20) NOT NULL,
+  created_by BIGINT NOT NULL,
+  created_at DATETIME NOT NULL
+);

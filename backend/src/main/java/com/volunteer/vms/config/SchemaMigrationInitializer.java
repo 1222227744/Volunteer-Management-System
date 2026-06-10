@@ -82,6 +82,196 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V2_010",
                     "补充审计日志动作时间索引",
                     "sql/migrations/V2_010__add_audit_log_action_created_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_001",
+                    "补充活动报名截止时间字段",
+                    "sql/migrations/V3_001__add_activity_registration_deadline.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_002",
+                    "补充活动参与要求字段",
+                    "sql/migrations/V3_002__add_activity_participation_requirement.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_003",
+                    "补充报名审核说明字段",
+                    "sql/migrations/V3_003__add_registration_review_comment.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_004",
+                    "补充报名审核时间字段",
+                    "sql/migrations/V3_004__add_registration_reviewed_at.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_005",
+                    "补充用户联系电话字段",
+                    "sql/migrations/V3_005__add_user_phone.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_006",
+                    "补充用户服务意向字段",
+                    "sql/migrations/V3_006__add_user_service_intention.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_007",
+                    "补充用户账号状态字段",
+                    "sql/migrations/V3_007__add_user_account_status.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_008",
+                    "补充用户实名审核状态字段",
+                    "sql/migrations/V3_008__add_user_verification_status.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_009",
+                    "补充用户实名审核说明字段",
+                    "sql/migrations/V3_009__add_user_verification_comment.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_010",
+                    "创建公益资源表",
+                    "sql/migrations/V3_010__create_public_resources.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_011",
+                    "创建帮扶需求表",
+                    "sql/migrations/V3_011__create_help_needs.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_012",
+                    "创建资源匹配表",
+                    "sql/migrations/V3_012__create_resource_matches.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_013",
+                    "补充资源对接查询索引",
+                    "sql/migrations/V3_013__add_resource_indexes.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_014",
+                    "补充捐赠记录订单关联字段",
+                    "sql/migrations/V3_014__add_donation_order_id.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_015",
+                    "创建捐赠订单表",
+                    "sql/migrations/V3_015__create_donation_orders.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_016",
+                    "补充捐赠订单用户时间索引",
+                    "sql/migrations/V3_016__add_donation_order_indexes.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_017",
+                    "补充捐赠订单状态时间索引",
+                    "sql/migrations/V3_017__add_donation_order_status_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_018",
+                    "创建文件审计表",
+                    "sql/migrations/V3_018__create_file_assets.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_019",
+                    "补充活动附件字段",
+                    "sql/migrations/V3_019__add_activity_attachment_file_id.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_020",
+                    "补充内容图片字段",
+                    "sql/migrations/V3_020__add_content_image_file_id.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_021",
+                    "补充服务证明文件字段",
+                    "sql/migrations/V3_021__add_service_record_evidence_file_id.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_022",
+                    "补充文件业务关联索引",
+                    "sql/migrations/V3_022__add_file_asset_business_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_023",
+                    "补充文件上传人索引",
+                    "sql/migrations/V3_023__add_file_asset_uploader_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_024",
+                    "创建荣誉激励记录表",
+                    "sql/migrations/V3_024__create_honor_records.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_025",
+                    "补充荣誉用户时间索引",
+                    "sql/migrations/V3_025__add_honor_user_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_026",
+                    "补充公开荣誉时间索引",
+                    "sql/migrations/V3_026__add_honor_public_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_027",
+                    "创建外部通知任务表",
+                    "sql/migrations/V3_027__create_external_notification_tasks.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_028",
+                    "补充外部通知状态时间索引",
+                    "sql/migrations/V3_028__add_external_notification_status_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_029",
+                    "补充外部通知用户时间索引",
+                    "sql/migrations/V3_029__add_external_notification_user_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_030",
+                    "补充活动签到码字段",
+                    "sql/migrations/V3_030__add_activity_check_code.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_031",
+                    "创建活动考勤更正记录表",
+                    "sql/migrations/V3_031__create_activity_attendance_corrections.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_032",
+                    "补充活动考勤更正查询索引",
+                    "sql/migrations/V3_032__add_attendance_correction_indexes.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_033",
+                    "规范化活动签到码数据",
+                    "sql/migrations/V3_033__normalize_activity_check_code.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_034",
+                    "创建系统配置表",
+                    "sql/migrations/V3_034__create_system_configs.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_035",
+                    "创建故障处理记录表",
+                    "sql/migrations/V3_035__create_incident_records.sql"
+            ),
+            new MigrationDefinition(
+                    "V3_036",
+                    "补充故障处理状态时间索引",
+                    "sql/migrations/V3_036__add_incident_status_index.sql"
+            ),
+            new MigrationDefinition(
+                    "V4_001",
+                    "创建服务记录更正申请表",
+                    "sql/migrations/V4_001__create_service_record_corrections.sql"
+            ),
+            new MigrationDefinition(
+                    "V4_002",
+                    "补充服务记录更正查询索引",
+                    "sql/migrations/V4_002__add_service_record_correction_indexes.sql"
             )
     );
 
@@ -95,10 +285,23 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        ensureBaseSchema();
         ensureMigrationHistoryTable();
         for (MigrationDefinition migration : MIGRATIONS) {
             applyMigration(migration);
         }
+    }
+
+    private void ensureBaseSchema() {
+        if (tableExists("users") && tableExists("activities") && tableExists("activity_registrations")) {
+            return;
+        }
+        if (tableExists("users") || tableExists("activities") || tableExists("activity_registrations")) {
+            log.warn("检测到数据库基础表不完整，未自动执行 init.sql；请人工核对当前库结构后再启动");
+            return;
+        }
+        executeScript("sql/init.sql");
+        log.info("检测到空数据库，已执行 sql/init.sql 初始化基础表结构");
     }
 
     private void applyMigration(MigrationDefinition migration) {
@@ -132,6 +335,44 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V2_008" -> decideIndexMigration("service_records", "idx_service_records_user_created_at");
             case "V2_009" -> decideIndexMigration("audit_logs", "idx_audit_logs_created_at");
             case "V2_010" -> decideIndexMigration("audit_logs", "idx_audit_logs_action_created_at");
+            case "V3_001" -> decideColumnMigration("activities", "registration_deadline");
+            case "V3_002" -> decideColumnMigration("activities", "participation_requirement");
+            case "V3_003" -> decideColumnMigration("activity_registrations", "review_comment");
+            case "V3_004" -> decideColumnMigration("activity_registrations", "reviewed_at");
+            case "V3_005" -> decideColumnMigration("users", "phone");
+            case "V3_006" -> decideColumnMigration("users", "service_intention");
+            case "V3_007" -> decideColumnMigration("users", "account_status");
+            case "V3_008" -> decideColumnMigration("users", "verification_status");
+            case "V3_009" -> decideColumnMigration("users", "verification_comment");
+            case "V3_010" -> decideTableMigration("public_resources");
+            case "V3_011" -> decideTableMigration("help_needs");
+            case "V3_012" -> decideTableMigration("resource_matches");
+            case "V3_013" -> decideResourceIndexMigration();
+            case "V3_014" -> decideColumnMigration("donations", "order_id");
+            case "V3_015" -> decideTableMigration("donation_orders");
+            case "V3_016" -> decideIndexMigration("donation_orders", "idx_donation_orders_user_created_at");
+            case "V3_017" -> decideIndexMigration("donation_orders", "idx_donation_orders_status_created_at");
+            case "V3_018" -> decideTableMigration("file_assets");
+            case "V3_019" -> decideColumnMigration("activities", "attachment_file_id");
+            case "V3_020" -> decideColumnMigration("content_posts", "image_file_id");
+            case "V3_021" -> decideColumnMigration("service_records", "evidence_file_id");
+            case "V3_022" -> decideIndexMigration("file_assets", "idx_file_assets_business");
+            case "V3_023" -> decideIndexMigration("file_assets", "idx_file_assets_uploader_created_at");
+            case "V3_024" -> decideTableMigration("honor_records");
+            case "V3_025" -> decideIndexMigration("honor_records", "idx_honor_records_user_awarded_at");
+            case "V3_026" -> decideIndexMigration("honor_records", "idx_honor_records_public_awarded_at");
+            case "V3_027" -> decideTableMigration("external_notification_tasks");
+            case "V3_028" -> decideIndexMigration("external_notification_tasks", "idx_external_notification_tasks_status_created_at");
+            case "V3_029" -> decideIndexMigration("external_notification_tasks", "idx_external_notification_tasks_user_created_at");
+            case "V3_030" -> decideColumnMigration("activities", "check_code");
+            case "V3_031" -> decideTableMigration("activity_attendance_corrections");
+            case "V3_032" -> decideAttendanceCorrectionIndexMigration();
+            case "V3_033" -> decideActivityCheckCodeNormalizeMigration();
+            case "V3_034" -> decideTableMigration("system_configs");
+            case "V3_035" -> decideTableMigration("incident_records");
+            case "V3_036" -> decideIndexMigration("incident_records", "idx_incident_records_status_created_at");
+            case "V4_001" -> decideTableMigration("service_record_corrections");
+            case "V4_002" -> decideServiceRecordCorrectionIndexMigration();
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
     }
@@ -253,6 +494,84 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             return baseline(indexName + " 索引已存在");
         }
         return execute("缺少 " + indexName + " 索引");
+    }
+
+    private MigrationDecision decideColumnMigration(String tableName, String columnName) {
+        if (!tableExists(tableName)) {
+            return baseline(tableName + " 表尚不存在");
+        }
+        if (columnExists(tableName, columnName)) {
+            return baseline(columnName + " 字段已存在");
+        }
+        return execute("缺少 " + columnName + " 字段");
+    }
+
+    private MigrationDecision decideTableMigration(String tableName) {
+        if (tableExists(tableName)) {
+            return baseline(tableName + " 表已存在");
+        }
+        return execute("缺少 " + tableName + " 表");
+    }
+
+    private MigrationDecision decideResourceIndexMigration() {
+        if (!tableExists("public_resources") || !tableExists("help_needs") || !tableExists("resource_matches")) {
+            return baseline("资源对接相关表尚未全部存在");
+        }
+        if (indexExists("public_resources", "idx_public_resources_status_created_at")
+                && indexExists("help_needs", "idx_help_needs_status_created_at")
+                && indexExists("resource_matches", "idx_resource_matches_status_created_at")) {
+            return baseline("资源对接索引已存在");
+        }
+        return execute("缺少资源对接查询索引");
+    }
+
+    private MigrationDecision decideAttendanceCorrectionIndexMigration() {
+        if (!tableExists("activity_attendance_corrections")) {
+            return baseline("activity_attendance_corrections 表尚不存在");
+        }
+        if (indexExists("activity_attendance_corrections", "idx_attendance_corrections_activity_corrected")
+                && indexExists("activity_attendance_corrections", "idx_attendance_corrections_registration_corrected")) {
+            return baseline("活动考勤更正索引已存在");
+        }
+        return execute("缺少活动考勤更正查询索引");
+    }
+
+    private MigrationDecision decideServiceRecordCorrectionIndexMigration() {
+        if (!tableExists("service_record_corrections")) {
+            return baseline("service_record_corrections 表尚不存在");
+        }
+        if (indexExists("service_record_corrections", "idx_service_record_corrections_user_requested")
+                && indexExists("service_record_corrections", "idx_service_record_corrections_activity_requested")
+                && indexExists("service_record_corrections", "idx_service_record_corrections_status_requested")) {
+            return baseline("服务记录更正索引已存在");
+        }
+        return execute("缺少服务记录更正查询索引");
+    }
+
+    private MigrationDecision decideActivityCheckCodeNormalizeMigration() {
+        if (!tableExists("activities")) {
+            return baseline("activities 表尚不存在");
+        }
+        if (!columnExists("activities", "check_code")) {
+            return blocked("activities.check_code 字段尚不存在，请先执行 V3_030");
+        }
+        Integer missingCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM activities WHERE check_code IS NULL OR check_code = ''",
+                Integer.class
+        );
+        String nullable = queryForString(
+                """
+                SELECT IS_NULLABLE
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'activities'
+                  AND COLUMN_NAME = 'check_code'
+                """
+        );
+        if ((missingCount == null || missingCount == 0) && "NO".equalsIgnoreCase(nullable)) {
+            return baseline("活动签到码已回填且字段非空");
+        }
+        return execute("活动签到码存在空值或字段仍允许为空");
     }
 
     private void ensureMigrationHistoryTable() {

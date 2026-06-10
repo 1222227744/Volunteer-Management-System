@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS service_record_corrections (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  service_record_id BIGINT NOT NULL,
+  activity_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  requester_id BIGINT NOT NULL,
+  requester_name VARCHAR(50) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  old_hours DECIMAL(6,2) NOT NULL,
+  new_hours DECIMAL(6,2) NOT NULL,
+  old_achievement VARCHAR(1000) NOT NULL,
+  new_achievement VARCHAR(1000) NOT NULL,
+  old_evidence_url VARCHAR(500) NULL,
+  new_evidence_url VARCHAR(500) NULL,
+  old_evidence_file_id BIGINT NULL,
+  new_evidence_file_id BIGINT NULL,
+  reason VARCHAR(500) NOT NULL,
+  review_comment VARCHAR(500) NULL,
+  reviewed_by BIGINT NULL,
+  reviewed_by_name VARCHAR(50) NULL,
+  requested_at DATETIME NOT NULL,
+  reviewed_at DATETIME NULL
+);

@@ -41,6 +41,11 @@ const routes = [
     component: () => import("../views/RankingView.vue")
   },
   {
+    path: "/honors",
+    name: "honors",
+    component: () => import("../views/HonorsView.vue")
+  },
+  {
     path: "/service-records",
     name: "service-records",
     component: () => import("../views/ServiceRecordsView.vue")
@@ -61,6 +66,12 @@ const routes = [
     component: () => import("../views/FeedbacksView.vue")
   },
   {
+    path: "/resources",
+    name: "resources",
+    component: () => import("../views/ResourcesView.vue"),
+    meta: { roles: ["ADMIN", "ORGANIZER"] }
+  },
+  {
     path: "/announcements",
     name: "announcements",
     component: () => import("../views/AnnouncementsView.vue")
@@ -75,6 +86,12 @@ const routes = [
     name: "dashboard",
     component: () => import("../views/DashboardView.vue"),
     meta: { roles: ["ADMIN", "ORGANIZER"] }
+  },
+  {
+    path: "/ops",
+    name: "ops",
+    component: () => import("../views/OpsView.vue"),
+    meta: { roles: ["ADMIN"] }
   },
   {
     path: "/users-admin",
