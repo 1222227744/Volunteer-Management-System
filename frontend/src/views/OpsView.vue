@@ -2,7 +2,7 @@
   <section class="panel">
     <div class="panel-head">
       <h2>系统运维</h2>
-      <p>管理基础配置项，记录故障处理过程，支撑第三次迭代的运维治理要求。</p>
+      <p>管理基础配置项，记录故障处理过程，支撑系统日常运维治理。</p>
     </div>
     <div class="panel-body">
       <p v-if="message" :class="['notice', ok ? 'success' : 'error']" style="margin-bottom: 12px;">{{ message }}</p>
@@ -24,10 +24,20 @@
               <tr v-for="config in configs" :key="config.configKey">
                 <td>
                   <strong>{{ config.configName }}</strong>
-                  <span class="muted">{{ config.configKey }}</span>
                 </td>
                 <td>
-                  <input v-model.trim="configForms[config.configKey]" :disabled="!config.editable" />
+                  <button
+                    v-if="isBooleanConfig(config)"
+                    type="button"
+                    :class="['switch-control', { active: booleanValue(config) }]"
+                    :disabled="!config.editable"
+                    :aria-pressed="booleanValue(config)"
+                    :aria-label="config.configName + (booleanValue(config) ? '已启用' : '已停用')"
+                    @click="toggleConfig(config)"
+                  >
+                    <span></span>
+                  </button>
+                  <input v-else v-model.trim="configForms[config.configKey]" :disabled="!config.editable" />
                 </td>
                 <td>{{ config.description }}</td>
                 <td>{{ formatDate(config.updatedAt) }} / {{ config.updatedByName }}</td>
@@ -150,6 +160,26 @@ const incidentForm = reactive({
 function formatDate(raw) {
   if (!raw) return "-";
   return raw.replace("T", " ").slice(0, 16);
+}
+
+function configValueText(config) {
+  return String(configForms[config.configKey] ?? "").trim().toLowerCase();
+}
+
+function isBooleanConfig(config) {
+  const value = configValueText(config);
+  return value === "true" || value === "false";
+}
+
+function booleanValue(config) {
+  return configValueText(config) === "true";
+}
+
+function toggleConfig(config) {
+  if (!config.editable) {
+    return;
+  }
+  configForms[config.configKey] = booleanValue(config) ? "false" : "true";
 }
 
 async function loadConfigs() {

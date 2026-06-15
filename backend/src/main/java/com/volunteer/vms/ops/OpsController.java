@@ -146,8 +146,8 @@ public class OpsController {
     }
 
     private void ensureDefaultConfigs(User currentUser) {
-        ensureConfig("demo.data.enabled", "演示数据开关", "false", "生产环境应关闭演示数据初始化。", false, currentUser);
-        ensureConfig("bootstrap.accounts.enabled", "默认账号初始化", "false", "生产环境应关闭默认管理员和组织方账号创建。", false, currentUser);
+        ensureConfig("demo.data.enabled", "样例数据加载控制", "false", "控制系统是否允许启动期写入预置业务数据。", false, currentUser);
+        ensureConfig("bootstrap.accounts.enabled", "基础账号创建控制", "false", "控制系统是否允许启动期创建基础管理账号。", false, currentUser);
         ensureConfig("registration.require.verification", "报名实名校验", "false", "开启后可作为报名资格校验规则。", true, currentUser);
         ensureConfig("notification.external.enabled", "外部通知开关", "true", "控制邮件/短信任务是否作为外部通知通道处理。", true, currentUser);
         ensureConfig("attendance.self.enabled", "自助签到签退开关", "true", "控制志愿者是否可通过签到码自助签到签退。", true, currentUser);
@@ -157,9 +157,28 @@ public class OpsController {
                               String name,
                               String value,
                               String description,
-                              boolean editable,
-                              User currentUser) {
-        if (systemConfigRepository.findByConfigKey(key).isPresent()) {
+        boolean editable,
+        User currentUser) {
+        SystemConfig existing = systemConfigRepository.findByConfigKey(key).orElse(null);
+        if (existing != null) {
+            boolean changed = false;
+            if (!name.equals(existing.getConfigName())) {
+                existing.setConfigName(name);
+                changed = true;
+            }
+            if (!description.equals(existing.getDescription())) {
+                existing.setDescription(description);
+                changed = true;
+            }
+            if (!Boolean.valueOf(editable).equals(existing.getEditable())) {
+                existing.setEditable(editable);
+                changed = true;
+            }
+            if (changed) {
+                existing.setUpdatedBy(currentUser.getId());
+                existing.setUpdatedByName(currentUser.getDisplayName());
+                systemConfigRepository.save(existing);
+            }
             return;
         }
         SystemConfig config = new SystemConfig();

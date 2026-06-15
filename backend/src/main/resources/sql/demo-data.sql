@@ -1,9 +1,9 @@
--- Volunteer Service Management System demo/test data.
+-- Volunteer Service Management System sample/test data.
 -- Usage after schema initialization:
 --   mysql> SOURCE backend/src/main/resources/sql/demo-data.sql;
 --
--- This script is intentionally idempotent for its own demo records. It first
--- removes data created by this file, then reinserts a coherent v4 demo dataset.
+-- This script is intentionally idempotent for its own sample records. It first
+-- removes data created by this file, then reinserts a coherent v4 sample dataset.
 
 USE volunteer_service;
 SET NAMES utf8mb4;
@@ -53,7 +53,6 @@ DELETE FROM external_notification_tasks WHERE user_id IN (SELECT id FROM demo_us
 DELETE FROM notifications WHERE user_id IN (SELECT id FROM demo_user_ids);
 DELETE FROM audit_logs
 WHERE operator_id IN (SELECT id FROM demo_user_ids)
-   OR detail LIKE '%演示%'
    OR detail LIKE '%城市公园环保清洁行动%'
    OR detail LIKE '%校园迎新志愿服务%';
 DELETE FROM service_record_corrections
@@ -81,14 +80,14 @@ WHERE user_id IN (SELECT id FROM demo_user_ids)
    OR donor_name IN ('刘琪', '陈墨', '组织方账号');
 DELETE FROM donation_orders
 WHERE user_id IN (SELECT id FROM demo_user_ids)
-   OR callback_token LIKE 'demo-%';
+   OR callback_token LIKE 'payment-%';
 DELETE FROM feedbacks WHERE user_id IN (SELECT id FROM demo_user_ids);
 DELETE FROM resource_matches
 WHERE resource_id IN (SELECT id FROM demo_resource_ids)
    OR need_id IN (SELECT id FROM demo_need_ids);
 DELETE FROM public_resources WHERE id IN (SELECT id FROM demo_resource_ids);
 DELETE FROM help_needs WHERE id IN (SELECT id FROM demo_need_ids);
-DELETE FROM incident_records WHERE title IN ('演示环境 SMTP 联调', '数据库初始化复核');
+DELETE FROM incident_records WHERE title IN ('邮件通道 SMTP 联调', '数据库初始化复核');
 DELETE FROM activities WHERE id IN (SELECT id FROM demo_activity_ids);
 DELETE FROM users WHERE id IN (SELECT id FROM demo_user_ids);
 
@@ -102,7 +101,7 @@ INSERT INTO users (
   ('chenmo@example.com', '$2b$10$0goAJqfjbVvbvau99G66yODh46hcawi9Aryvm6p/DbSwfoyy/RA.m', '陈墨', 'VOLUNTEER', '13800000004', '环保清洁、社区陪伴', 'ENABLED', 'VERIFIED', NULL, 132, DATE_SUB(NOW(), INTERVAL 29 DAY)),
   ('linan@example.com', '$2b$10$0goAJqfjbVvbvau99G66yODh46hcawi9Aryvm6p/DbSwfoyy/RA.m', '林安', 'VOLUNTEER', '13800000005', '儿童阅读陪伴、图书整理', 'ENABLED', 'VERIFIED', NULL, 68, DATE_SUB(NOW(), INTERVAL 28 DAY)),
   ('zhaowei@example.com', '$2b$10$0goAJqfjbVvbvau99G66yODh46hcawi9Aryvm6p/DbSwfoyy/RA.m', '赵薇', 'VOLUNTEER', '13800000006', '环保宣传、现场引导', 'ENABLED', 'VERIFIED', NULL, 110, DATE_SUB(NOW(), INTERVAL 27 DAY)),
-  ('sunhao@example.com', '$2b$10$0goAJqfjbVvbvau99G66yODh46hcawi9Aryvm6p/DbSwfoyy/RA.m', '孙昊', 'VOLUNTEER', '13800000007', '物资搬运、后勤支持', 'ENABLED', 'REJECTED', '演示数据：资料信息不完整。', 42, DATE_SUB(NOW(), INTERVAL 26 DAY));
+  ('sunhao@example.com', '$2b$10$0goAJqfjbVvbvau99G66yODh46hcawi9Aryvm6p/DbSwfoyy/RA.m', '孙昊', 'VOLUNTEER', '13800000007', '物资搬运、后勤支持', 'ENABLED', 'REJECTED', '资料信息不完整，请补充身份证明材料。', 42, DATE_SUB(NOW(), INTERVAL 26 DAY));
 
 SET @admin_id := (SELECT id FROM users WHERE username = 'admin@example.com');
 SET @organizer_id := (SELECT id FROM users WHERE username = 'organizer@example.com');
@@ -150,7 +149,7 @@ INSERT INTO activity_attendance_corrections (
 ) VALUES
   (@park_id, @chen_park_registration_id, @chen_id, 'SET_CHECKED_OUT', 'CHECKED_IN', 'CHECKED_OUT',
    DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 10 DAY), NULL,
-   DATE_ADD(DATE_SUB(NOW(), INTERVAL 10 DAY), INTERVAL 4 HOUR), '演示数据：志愿者签退时间由组织方补录。', @organizer_id, '组织方账号', DATE_SUB(NOW(), INTERVAL 9 DAY));
+   DATE_ADD(DATE_SUB(NOW(), INTERVAL 10 DAY), INTERVAL 4 HOUR), '志愿者签退时间由组织方补录。', @organizer_id, '组织方账号', DATE_SUB(NOW(), INTERVAL 9 DAY));
 
 INSERT INTO service_records (
   user_id, activity_id, hours, achievement, evidence_url, evidence_file_id, created_at
@@ -193,13 +192,13 @@ INSERT INTO announcements (title, content, publisher_id, created_at) VALUES
 INSERT INTO donation_orders (
   user_id, donor_name, amount, message, status, callback_token, payment_note, created_at, paid_at
 ) VALUES
-  (@liu_id, '刘琪', 50.00, '支持迎新志愿者饮水补给', 'PAID', 'demo-liuqi-paid-token', '演示订单：支付成功', DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
-  (@chen_id, '陈墨', 88.00, '用于环保活动物资采购', 'PAID', 'demo-chenmo-paid-token', '演示订单：支付成功', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
-  (@lin_id, '林安', 30.00, '待演示模拟支付的订单', 'PENDING', 'demo-linan-pending-token', NULL, DATE_SUB(NOW(), INTERVAL 1 DAY), NULL),
-  (@sun_id, '孙昊', 20.00, '演示订单：支付失败不生成捐赠记录', 'FAILED', 'demo-sunhao-failed-token', '银行卡余额不足', DATE_SUB(NOW(), INTERVAL 1 DAY), NULL);
+  (@liu_id, '刘琪', 50.00, '支持迎新志愿者饮水补给', 'PAID', 'payment-liuqi-paid-token', '支付结果确认：支付成功', DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
+  (@chen_id, '陈墨', 88.00, '用于环保活动物资采购', 'PAID', 'payment-chenmo-paid-token', '支付结果确认：支付成功', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
+  (@lin_id, '林安', 30.00, '待确认支付结果的订单', 'PENDING', 'payment-linan-pending-token', NULL, DATE_SUB(NOW(), INTERVAL 1 DAY), NULL),
+  (@sun_id, '孙昊', 20.00, '支付失败不生成捐赠记录', 'FAILED', 'payment-sunhao-failed-token', '银行卡余额不足', DATE_SUB(NOW(), INTERVAL 1 DAY), NULL);
 
-SET @liu_paid_order_id := (SELECT id FROM donation_orders WHERE callback_token = 'demo-liuqi-paid-token');
-SET @chen_paid_order_id := (SELECT id FROM donation_orders WHERE callback_token = 'demo-chenmo-paid-token');
+SET @liu_paid_order_id := (SELECT id FROM donation_orders WHERE callback_token = 'payment-liuqi-paid-token');
+SET @chen_paid_order_id := (SELECT id FROM donation_orders WHERE callback_token = 'payment-chenmo-paid-token');
 
 INSERT INTO donations (donor_name, user_id, order_id, amount, message, created_at) VALUES
   ('刘琪', @liu_id, @liu_paid_order_id, 50.00, '支持迎新志愿者饮水补给', DATE_SUB(NOW(), INTERVAL 2 DAY)),
@@ -240,8 +239,8 @@ INSERT INTO honor_records (
   (@lin_id, 'SERVICE_STAR', '阅读陪伴服务之星', '在社区阅读陪伴活动中服务态度稳定，活动成果记录清晰。', '林安在社区图书馆阅读陪伴活动中协助儿童阅读和图书整理，能够持续关注儿童参与体验，是阅读陪伴场景中的稳定志愿力量。', @library_id, 20, @admin_id, DATE_SUB(NOW(), INTERVAL 1 DAY), b'1');
 
 INSERT INTO notifications (user_id, title, content, read_flag, created_at) VALUES
-  (@admin_id, '系统演示数据已加载', '当前环境已预置活动、报名、服务记录、反馈和审计日志数据，可直接用于课程展示。', b'0', NOW()),
-  (@organizer_id, '系统演示数据已加载', '当前环境已预置活动、报名、服务记录、反馈和审计日志数据，可直接用于课程展示。', b'0', NOW()),
+  (@admin_id, '系统业务数据已准备', '当前环境已预置活动、报名、服务记录、反馈和审计日志数据，可直接用于业务流程验证。', b'0', NOW()),
+  (@organizer_id, '系统业务数据已准备', '当前环境已预置活动、报名、服务记录、反馈和审计日志数据，可直接用于业务流程验证。', b'0', NOW()),
   (@liu_id, '反馈已处理', '你提交的页面优化建议已完成处理，请前往反馈页面查看回复。', b'0', DATE_SUB(NOW(), INTERVAL 8 HOUR)),
   (@chen_id, '活动报名审核通过', '你报名的“校园迎新志愿服务”已审核通过，请按时参加。', b'1', DATE_SUB(NOW(), INTERVAL 12 HOUR)),
   (@lin_id, '服务记录更正申请已提交', '你在活动“社区图书馆阅读陪伴”中的服务记录更正申请已提交，等待组织方处理。', b'0', DATE_SUB(NOW(), INTERVAL 1 DAY));
@@ -251,28 +250,28 @@ INSERT INTO external_notification_tasks (
   last_error, created_at, last_tried_at, sent_at
 ) VALUES
   (@liu_id, 'EMAIL', '反馈已处理', '你提交的页面优化建议已完成处理，请前往反馈页面查看回复。', 'liuqi@example.com', 'SENT', 1, 3, NULL, DATE_SUB(NOW(), INTERVAL 8 HOUR), DATE_SUB(NOW(), INTERVAL 8 HOUR), DATE_SUB(NOW(), INTERVAL 8 HOUR)),
-  (@sun_id, 'SMS', '资料审核未通过', '你的实名资料审核未通过，请补充资料后重新提交。', '13800000007', 'FAILED', 1, 3, '课程版模拟短信失败记录，用于演示重试。', DATE_SUB(NOW(), INTERVAL 6 HOUR), DATE_SUB(NOW(), INTERVAL 6 HOUR), NULL);
+  (@sun_id, 'SMS', '资料审核未通过', '你的实名资料审核未通过，请补充资料后重新提交。', '13800000007', 'FAILED', 1, 3, '短信发送失败记录，用于验证重试流程。', DATE_SUB(NOW(), INTERVAL 6 HOUR), DATE_SUB(NOW(), INTERVAL 6 HOUR), NULL);
 
 INSERT INTO incident_records (
   title, description, severity, status, handling_measure, result,
   created_by, created_by_name, created_at, resolved_at
 ) VALUES
-  ('演示环境 SMTP 联调', '课程展示前需要确认 SMTP 账号、授权码和收件用户邮箱格式。', 'MEDIUM', 'OPEN', '检查 backend/.env 中 VMS_EMAIL_* 配置。', NULL, @admin_id, '系统管理员', DATE_SUB(NOW(), INTERVAL 1 DAY), NULL),
-  ('数据库初始化复核', '演示数据库已通过 init.sql 建表，并通过 demo-data.sql 导入样例数据。', 'LOW', 'RESOLVED', '执行 SOURCE init.sql 与 SOURCE demo-data.sql。', '演示库结构与数据已复核。', @admin_id, '系统管理员', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY));
+  ('邮件通道 SMTP 联调', '上线前需要确认 SMTP 账号、授权码和收件用户邮箱格式。', 'MEDIUM', 'OPEN', '检查 backend/.env 中 VMS_EMAIL_* 配置。', NULL, @admin_id, '系统管理员', DATE_SUB(NOW(), INTERVAL 1 DAY), NULL),
+  ('数据库初始化复核', '数据库已通过 init.sql 建表，并通过 demo-data.sql 导入样例数据。', 'LOW', 'RESOLVED', '执行 SOURCE init.sql 与 SOURCE demo-data.sql。', '库结构与样例数据已复核。', @admin_id, '系统管理员', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY));
 
 INSERT INTO audit_logs (
   operator_id, operator_name, operator_role, action, target_type, target_id,
   detail, ip_address, created_at
 ) VALUES
-  (@organizer_id, '组织方账号', 'ORGANIZER', 'ACTIVITY_CREATED', 'ACTIVITY', CAST(@campus_id AS CHAR), '演示数据：创建活动 校园迎新志愿服务', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 1 DAY)),
-  (@organizer_id, '组织方账号', 'ORGANIZER', 'ACTIVITY_REGISTRATION_REVIEWED', 'ACTIVITY_REGISTRATION', 'demo', '演示数据：审核通过陈墨的迎新活动报名', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 12 HOUR)),
-  (@admin_id, '系统管理员', 'ADMIN', 'ANNOUNCEMENT_CREATED', 'ANNOUNCEMENT', 'demo', '演示数据：发布公告 服务记录公示规则更新', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 5 DAY)),
-  (@organizer_id, '组织方账号', 'ORGANIZER', 'CONTENT_REVIEWED', 'CONTENT', 'demo', '演示数据：审核结果=APPROVED, 审核意见=内容详实，可用于成果展示。', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 8 DAY)),
-  (@admin_id, '系统管理员', 'ADMIN', 'FEEDBACK_RESOLVED', 'FEEDBACK', 'demo', '演示数据：处理回复=已在活动执行页补充审核流程，后续会继续优化报名页说明。', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 8 HOUR));
+  (@organizer_id, '组织方账号', 'ORGANIZER', 'ACTIVITY_CREATED', 'ACTIVITY', CAST(@campus_id AS CHAR), '创建活动 校园迎新志愿服务', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 1 DAY)),
+  (@organizer_id, '组织方账号', 'ORGANIZER', 'ACTIVITY_REGISTRATION_REVIEWED', 'ACTIVITY_REGISTRATION', CONCAT(CAST(@campus_id AS CHAR), ':', CAST(@chen_id AS CHAR)), '审核通过陈墨的迎新活动报名', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 12 HOUR)),
+  (@admin_id, '系统管理员', 'ADMIN', 'ANNOUNCEMENT_CREATED', 'ANNOUNCEMENT', 'service-record-rules-update', '发布公告 服务记录公示规则更新', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 5 DAY)),
+  (@organizer_id, '组织方账号', 'ORGANIZER', 'CONTENT_REVIEWED', 'CONTENT', 'content-post-approved', '审核结果=APPROVED, 审核意见=内容详实，可用于成果展示。', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 8 DAY)),
+  (@admin_id, '系统管理员', 'ADMIN', 'FEEDBACK_RESOLVED', 'FEEDBACK', 'feedback-page-status-note', '处理回复=已在活动执行页补充审核流程，后续会继续优化报名页说明。', '127.0.0.1', DATE_SUB(NOW(), INTERVAL 8 HOUR));
 
 COMMIT;
 
-SELECT 'demo data imported' AS result;
+SELECT 'sample data imported' AS result;
 SELECT 'admin@example.com / admin123' AS admin_login;
 SELECT 'organizer@example.com / organizer123' AS organizer_login;
 SELECT 'liuqi@example.com / volunteer123' AS volunteer_login;

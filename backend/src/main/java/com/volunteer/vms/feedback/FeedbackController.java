@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * 接口层：实现 SRS FR-08 互动反馈闭环。
- * 当前以“反馈提交 + 管理端处理 + 通知回执”作为课程版闭环实现。
+ * 当前以“反馈提交 + 管理端处理 + 通知回执”作为闭环实现。
  */
 @RestController
 @RequestMapping("/api/feedbacks")

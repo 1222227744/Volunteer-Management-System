@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component
-public class SimulatedDonationPaymentGateway implements DonationPaymentGateway {
+public class LocalDonationPaymentGateway implements DonationPaymentGateway {
     @Override
     public String createCallbackToken() {
         return UUID.randomUUID().toString().replace("-", "");
@@ -17,10 +17,5 @@ public class SimulatedDonationPaymentGateway implements DonationPaymentGateway {
                 && order.getCallbackToken() != null
                 && callbackToken != null
                 && order.getCallbackToken().equals(callbackToken.trim());
-    }
-
-    @Override
-    public String gatewayName() {
-        return "SIMULATED";
     }
 }

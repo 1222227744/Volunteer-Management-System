@@ -29,7 +29,7 @@
   <section v-if="isAdmin" class="panel">
     <div class="panel-head">
       <h2>外部通知任务</h2>
-      <p>查看邮件、短信外部发送结果；启用 SMTP 后邮件会真实发送，短信仍为模拟发送。</p>
+      <p>查看邮件、短信外部发送结果，并跟踪失败原因与重试次数。</p>
     </div>
     <div class="panel-body">
       <div class="stack" style="justify-content: space-between; margin-bottom: 12px;">

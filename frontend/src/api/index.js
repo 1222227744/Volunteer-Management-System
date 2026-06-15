@@ -253,8 +253,8 @@ export const donationApi = {
       body: JSON.stringify(payload)
     }),
   myOrders: () => apiRequest("/api/donations/orders/my"),
-  simulatePayment: (orderId, payload) =>
-    apiRequest(`/api/donations/orders/${orderId}/simulate-payment`, {
+  confirmPayment: (orderId, payload) =>
+    apiRequest(`/api/donations/orders/${orderId}/confirm-payment`, {
       method: "POST",
       body: JSON.stringify(payload)
     }),

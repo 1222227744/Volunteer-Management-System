@@ -9,7 +9,7 @@
 - 公告、通知、反馈、捐赠
 - 统计看板与审计日志
 
-当前目标是让项目在完成环境配置后即可直接启动、演示和验收。
+当前目标是让项目在完成环境配置后即可直接启动、验证和验收。
 
 ## 0. 文档基线与当前阶段
 
@@ -23,9 +23,9 @@
 
 当前代码库对应第四次迭代阶段的 v4 系统：
 
-- 已具备核心业务主链，可直接演示注册、活动、报名审核、自助签到签退、服务记录、内容审核、公告通知、反馈、资源对接、捐赠、统计和审计。
-- `v3` 已补齐 JWT 登录态、Axios 客户端、文件上传审计、模拟支付回调、WebSocket 站内通知、外部通知任务、异常考勤更正、统计导出、系统配置和故障处理记录。
-- `v4` 已完成生产化和质量增强范围：服务记录更正闭环、真实 SMTP 邮件发送、外部通知/支付/文件存储适配边界、SQL 演示数据、API 安全响应头、systemd 示例配置。
+- 已具备核心业务主链，可直接验证注册、活动、报名审核、自助签到签退、服务记录、内容审核、公告通知、反馈、资源对接、捐赠、统计和审计。
+- `v3` 已补齐 JWT 登录态、Axios 客户端、文件上传审计、支付结果确认、WebSocket 站内通知、外部通知任务、异常考勤更正、统计导出、系统配置和故障处理记录。
+- `v4` 已完成生产化和质量增强范围：服务记录更正闭环、真实 SMTP 邮件发送、外部通知/支付/文件存储适配边界、SQL 样例数据、API 安全响应头、systemd 示例配置。
 - 当前剩余工作主要集中在短信/支付/对象存储真实第三方账号联调、Flyway/Liquibase 标准迁移框架替换和更完整的自动化回归测试。
 
 ## 1. 技术栈
@@ -54,7 +54,7 @@
 ### 当前部署形态
 
 - 本地开发：前端开发服务器 + 后端 Spring Boot + MySQL
-- 生产/演示部署：`Nginx + 前端静态文件 + Spring Boot Jar + MySQL`
+- 生产/验收部署：`Nginx + 前端静态文件 + Spring Boot Jar + MySQL`
 
 ## 2. 目录结构
 
@@ -64,9 +64,9 @@ softwareEngineer/
     src/main/java/...             Java 代码
     src/main/resources/...        配置与 SQL
       sql/init.sql                数据库初始化脚本
-      sql/demo-data.sql           课程演示与测试数据脚本
+      sql/demo-data.sql           样例与测试数据脚本
     .env.example                  后端环境变量示例
-    api-demo.http                 接口冒烟演示请求
+    api-demo.http                 接口冒烟请求
     pom.xml
   frontend/                       前端工程
     src/...                       Vue 页面与接口
@@ -83,6 +83,8 @@ softwareEngineer/
   docs/
     接口文档.md                    当前代码对应的接口与外部服务边界说明
     运维部署手册.md                环境配置、部署发布和日常运维说明
+    测试流程引导.md                提交前功能、接口和构建验证顺序
+    视频演示流程.md                3 到 4 分钟演示流程
     需求实现对应矩阵.md            需求、设计分层与代码实现对应关系
     *迭代范围与目标.md             第二至第四次迭代范围和完成状态
   README.md
@@ -178,9 +180,9 @@ SOURCE backend/src/main/resources/sql/init.sql;
 - 空库首次启动时，后端会自动执行 `backend/src/main/resources/sql/init.sql` 初始化基础表结构。
 - 已有库启动时，后端会通过 `schema_migrations` 历史表登记迁移脚本，并按兼容判定补齐缺失字段、表和索引。
 
-### 4.4 导入演示数据
+### 4.4 导入样例数据
 
-默认情况下不会自动创建演示账号或导入演示数据。课程展示或接口测试前，可在 MySQL 客户端中执行：
+默认情况下不会自动创建样例账号或导入样例数据。展示或接口测试前，可在 MySQL 客户端中执行：
 
 以下相对路径同样假设你从项目根目录启动 MySQL 客户端。
 
@@ -196,9 +198,9 @@ SOURCE backend/src/main/resources/sql/demo-data.sql;
 
 说明：
 
-- `demo-data.sql` 会先清理它自己创建的演示账号、演示活动、演示资源和关联数据，再重新插入，便于重复导入。
-- 演示账号使用邮箱格式用户名，可直接配合真实 SMTP 邮件发送能力。
-- 真实环境不要导入演示数据；真实账号应通过注册或后台管理流程创建。
+- `demo-data.sql` 会先清理它自己创建的样例账号、样例活动、样例资源和关联数据，再重新插入，便于重复导入。
+- 样例账号使用邮箱格式用户名，可直接配合真实 SMTP 邮件发送能力。
+- 真实环境不要导入样例数据；真实账号应通过注册或后台管理流程创建。
 
 ### 4.5 一键生成真实运行配置
 
@@ -216,7 +218,7 @@ Windows PowerShell：
 powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1 -DbUser root -DbPassword "你的MySQL密码"
 ```
 
-如果希望同时初始化数据库并导入演示数据：
+如果希望同时初始化数据库并导入样例数据：
 
 ```bash
 bash scripts/setup-ubuntu.sh --db-user root --db-password '你的MySQL密码' --init-db --with-demo
@@ -255,9 +257,9 @@ npm run dev
 
 ### 5.3 登录系统
 
-默认情况下不会自动创建账号或导入演示数据。课程演示推荐先执行 `demo-data.sql`，然后使用 `admin@example.com / admin123` 登录。
+默认情况下不会自动创建账号或导入样例数据。展示时推荐先执行 `demo-data.sql`，然后使用 `admin@example.com / admin123` 登录。
 
-如果只需要初始化空系统管理员和组织方账号，也可以在 `backend/.env` 中启用 `VMS_BOOTSTRAP_ENABLED=true`。该开关只创建默认账号，不导入业务演示数据。
+如果只需要初始化空系统管理员和组织方账号，也可以在 `backend/.env` 中启用 `VMS_BOOTSTRAP_ENABLED=true`。该开关只创建默认账号，不导入业务样例数据。
 
 ## 6. 一次性快速启动流程
 
@@ -265,7 +267,7 @@ npm run dev
 
 1. 运行 `scripts/setup-windows.ps1` 或 `scripts/setup-ubuntu.sh` 生成 `.env`
 2. 在 MySQL 中执行 `backend/src/main/resources/sql/init.sql`
-3. 如需课程展示数据，再执行 `backend/src/main/resources/sql/demo-data.sql`
+3. 如需展示数据，再执行 `backend/src/main/resources/sql/demo-data.sql`
 4. 启动后端：`cd backend && mvn clean spring-boot:run`
 5. 启动前端：`cd frontend && npm install && npm run dev`
 6. 打开 `http://127.0.0.1:5173`
@@ -350,8 +352,9 @@ npm run build
 
 说明：
 
-- 后端当前不保留 `src/test` 自动化测试目录，课程演示验证以 SQL 演示数据、`backend/api-demo.http` 和构建验证为主。
+- 后端当前不保留 `src/test` 自动化测试目录，展示验证以 SQL 样例数据、`backend/api-demo.http` 和构建验证为主。
 - 后端和前端都应作为本轮交付前的基础验证项执行。
+- 完整人工验收流程按 [docs/测试流程引导.md](./docs/测试流程引导.md) 执行，覆盖志愿者、组织方、管理员三类角色和接口冒烟。
 - 数据库结构治理以 `backend/src/main/resources/sql/init.sql` 和 `backend/src/main/resources/sql/migrations/` 中的实际脚本为准。
 
 ## 9. 环境文件说明
@@ -380,7 +383,7 @@ npm run build
 
 真实邮箱说明：
 
-- 默认不启用真实邮件，外部通知仍使用课程版模拟发送。
+- 默认不启用真实邮件，外部通知仍使用本地发送实现。
 - 启用 `VMS_EMAIL_ENABLED=true` 后，EMAIL 通道会通过 SMTP 真实发送。
 - 当前系统复用用户 `username` 作为邮件收件地址；需要真实发送时，请让接收用户使用邮箱格式用户名注册。
 - 常见 465 端口配置为 `VMS_EMAIL_SSL_ENABLED=true`、`VMS_EMAIL_STARTTLS_ENABLED=false`。
@@ -411,14 +414,14 @@ npm run build
 - 提供了 Nginx 反向代理示例
 - 登录页取消了写死的默认账号密码预填
 - `.gitignore` 已忽略真实 `.env` 文件，避免泄露本机密码
-- 已补充需求实现对应矩阵、可 `SOURCE` 导入的演示数据 SQL、数据库兼容迁移、版本化迁移脚本、默认账号昵称纠偏、JWT 登录态和 Axios 客户端
-- v4 已补齐服务记录更正闭环、真实 SMTP 邮件发送适配、外部通知发送适配端口、模拟支付网关适配端口、本地文件对象存储适配端口、API 安全响应头和 systemd 示例配置
+- 已补充需求实现对应矩阵、可 `SOURCE` 导入的样例数据 SQL、数据库兼容迁移、版本化迁移脚本、默认账号昵称纠偏、JWT 登录态和 Axios 客户端
+- v4 已补齐服务记录更正闭环、真实 SMTP 邮件发送适配、外部通知发送适配端口、支付结果确认网关适配端口、本地文件对象存储适配端口、API 安全响应头和 systemd 示例配置
 - 当前唯一维护的接口说明为 [docs/接口文档.md](./docs/接口文档.md)，根目录旧版接口设计文档已清理
 
-### 10.1 演示数据与接口脚本
+### 10.1 样例数据与接口脚本
 
-- 演示数据脚本：[backend/src/main/resources/sql/demo-data.sql](./backend/src/main/resources/sql/demo-data.sql)
-- 接口演示脚本：[backend/api-demo.http](./backend/api-demo.http)
+- 样例数据脚本：[backend/src/main/resources/sql/demo-data.sql](./backend/src/main/resources/sql/demo-data.sql)
+- 接口冒烟脚本：[backend/api-demo.http](./backend/api-demo.http)
 - Windows 配置脚本：[scripts/setup-windows.ps1](./scripts/setup-windows.ps1)
 - Ubuntu 配置脚本：[scripts/setup-ubuntu.sh](./scripts/setup-ubuntu.sh)
 
@@ -455,12 +458,12 @@ npm run build
 
 ## 12. 建议的下一步
 
-当前仓库已经完成第四次迭代范围，建议优先按 [第四次迭代范围与目标.md](./docs/第四次迭代范围与目标.md) 和 [需求实现对应矩阵.md](./docs/需求实现对应矩阵.md) 做验收走查。
+当前仓库已经完成第四次迭代范围，建议优先按 [第四次迭代范围与目标.md](./docs/第四次迭代范围与目标.md)、[需求实现对应矩阵.md](./docs/需求实现对应矩阵.md) 和 [测试流程引导.md](./docs/测试流程引导.md) 做验收走查。
 部署和日常运维按 [运维部署手册.md](./docs/运维部署手册.md) 执行。
 
 后续优先事项建议如下：
 
-1. 若课程展示需要真实邮件演示，配置并联调 SMTP 账号；若需要进一步生产化，再接入真实短信服务、支付网关和对象存储实现类。
+1. 若展示需要真实邮件验证，配置并联调 SMTP 账号；若需要进一步生产化，再接入真实短信服务、支付网关和对象存储实现类。
 2. 若项目继续长期维护，再将当前轻量迁移器切换为 Flyway 或 Liquibase，并为已有库制定 baseline 方案。
 3. 继续补齐前端交互回归测试和更完整的数据层集成测试。
 4. 继续同步旧文档和最新概要设计，避免说明文档与代码口径再次漂移。

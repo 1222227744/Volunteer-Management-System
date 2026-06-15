@@ -12,7 +12,7 @@ import java.util.Properties;
 
 /**
  * 真实邮件发送适配器：配置 vms.external.email.enabled=true 后，
- * EMAIL 通道会通过 SMTP 发送；未启用时由路由发送器回退到模拟发送。
+ * EMAIL 通道会通过 SMTP 发送；未启用时由路由发送器回退到本地通道。
  */
 @Component
 public class SmtpEmailNotificationSender {

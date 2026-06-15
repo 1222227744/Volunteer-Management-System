@@ -212,7 +212,7 @@ import { activityApi, activityFeedbackApi, fileApi, serviceRecordApi } from "../
 import { authState } from "../stores/auth";
 import { formatRegistrationStatus, formatServiceRecordCorrectionStatus } from "../utils/labels";
 
-// 展示层：对应 SRS FR-04 服务记录与 FR-05 积分激励的课程版实现页面。
+// 展示层：对应 SRS FR-04 服务记录与 FR-05 积分激励页面。
 const message = ref("");
 const messageType = ref("success");
 const submitting = ref(false);

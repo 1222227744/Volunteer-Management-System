@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -272,6 +273,11 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
                     "V4_002",
                     "补充服务记录更正查询索引",
                     "sql/migrations/V4_002__add_service_record_correction_indexes.sql"
+            ),
+            new MigrationDefinition(
+                    "V4_003",
+                    "修复历史编码错误昵称",
+                    "sql/migrations/V4_003__repair_mojibake_names.sql"
             )
     );
 
@@ -373,8 +379,44 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V3_036" -> decideIndexMigration("incident_records", "idx_incident_records_status_created_at");
             case "V4_001" -> decideTableMigration("service_record_corrections");
             case "V4_002" -> decideServiceRecordCorrectionIndexMigration();
+            case "V4_003" -> decideMojibakeNameRepairMigration();
             default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
         };
+    }
+
+    private MigrationDecision decideMojibakeNameRepairMigration() {
+        String adminMojibake = mojibake("系统管理员");
+        String organizerMojibake = mojibake("组织方账号");
+        int badCount = 0;
+        if (tableExists("users")) {
+            badCount += countTextMatches("users", "display_name", adminMojibake, organizerMojibake);
+        }
+        if (tableExists("system_configs")) {
+            badCount += countTextMatches("system_configs", "updated_by_name", adminMojibake, organizerMojibake);
+        }
+        if (tableExists("incident_records")) {
+            badCount += countTextMatches("incident_records", "created_by_name", adminMojibake, organizerMojibake);
+        }
+        if (tableExists("audit_logs")) {
+            badCount += countTextMatches("audit_logs", "operator_name", adminMojibake, organizerMojibake);
+        }
+        if (tableExists("activity_attendance_corrections")) {
+            badCount += countTextMatches("activity_attendance_corrections", "corrected_by_name", adminMojibake, organizerMojibake);
+        }
+        if (tableExists("service_record_corrections")) {
+            badCount += countTextMatches("service_record_corrections", "requester_name", adminMojibake, organizerMojibake);
+            badCount += countTextMatches("service_record_corrections", "reviewed_by_name", adminMojibake, organizerMojibake);
+        }
+        if (tableExists("file_assets")) {
+            badCount += countTextMatches("file_assets", "uploader_name", adminMojibake, organizerMojibake);
+        }
+        if (tableExists("donation_orders")) {
+            badCount += countTextMatches("donation_orders", "donor_name", adminMojibake, organizerMojibake);
+        }
+        if (tableExists("donations")) {
+            badCount += countTextMatches("donations", "donor_name", adminMojibake, organizerMojibake);
+        }
+        return badCount > 0 ? execute("检测到历史编码错误昵称") : baseline("未检测到历史编码错误昵称");
     }
 
     private MigrationDecision decideCheckOutColumnMigration() {
@@ -650,6 +692,23 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
     private String queryForString(String sql, Object... args) {
         List<String> values = jdbcTemplate.query(sql, (rs, rowNum) -> rs.getString(1), args);
         return values.isEmpty() ? null : values.get(0);
+    }
+
+    private int countTextMatches(String tableName, String columnName, String... values) {
+        if (values.length < 2) {
+            throw new IllegalArgumentException("至少需要两个比较值");
+        }
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM " + tableName + " WHERE " + columnName + " IN (?, ?)",
+                Integer.class,
+                values[0],
+                values[1]
+        );
+        return count == null ? 0 : count;
+    }
+
+    private String mojibake(String value) {
+        return new String(value.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
     }
 
     private boolean tableExists(String tableName) {

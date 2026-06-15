@@ -2,7 +2,7 @@
   <section class="panel">
     <div class="panel-head">
       <h2>捐赠与支持</h2>
-      <p>按 v3 支付接口流程创建捐赠订单，通过模拟支付回调生成正式捐赠记录。</p>
+      <p>创建捐赠订单并完成支付确认，支付成功后自动生成捐赠记录。</p>
     </div>
     <div class="panel-body">
       <p v-if="message" :class="['notice', ok ? 'success' : 'error']" style="margin-bottom: 12px;">
@@ -35,7 +35,7 @@
       <div class="grid two">
         <div class="card">
           <h3>我的捐赠订单</h3>
-          <p class="muted">待支付订单可直接模拟支付回调，成功后自动生成正式捐赠记录。</p>
+          <p class="muted">待支付订单可在当前页面完成支付结果确认，成功后自动生成捐赠记录。</p>
           <div class="list">
             <article class="card" v-for="item in myOrders" :key="item.id">
               <div class="stack" style="justify-content: space-between;">
@@ -44,21 +44,20 @@
               </div>
               <p class="muted">金额：¥ {{ formatAmount(item.amount) }}</p>
               <p v-if="item.message" class="muted">留言：{{ item.message }}</p>
-              <p class="muted">回调令牌：{{ item.callbackToken }}</p>
               <p v-if="item.paymentNote" class="muted">支付说明：{{ item.paymentNote }}</p>
               <p class="muted">
                 创建时间：{{ formatDate(item.createdAt) }}
                 <span v-if="item.paidAt"> | 支付时间：{{ formatDate(item.paidAt) }}</span>
               </p>
               <div v-if="item.status === 'PENDING'" class="stack">
-                <button class="btn primary" :disabled="processingId === item.id" @click="simulatePayment(item, 'PAID')">
-                  模拟支付成功
+                <button class="btn primary" :disabled="processingId === item.id" @click="confirmPayment(item, 'PAID')">
+                  确认支付成功
                 </button>
-                <button class="btn warn" :disabled="processingId === item.id" @click="simulatePayment(item, 'FAILED')">
-                  模拟支付失败
+                <button class="btn warn" :disabled="processingId === item.id" @click="confirmPayment(item, 'FAILED')">
+                  标记支付失败
                 </button>
-                <button class="btn danger" :disabled="processingId === item.id" @click="simulatePayment(item, 'CANCELLED')">
-                  模拟取消支付
+                <button class="btn danger" :disabled="processingId === item.id" @click="confirmPayment(item, 'CANCELLED')">
+                  取消支付
                 </button>
               </div>
             </article>
@@ -191,7 +190,7 @@ async function createOrder() {
       message: form.message || null
     });
     ok.value = true;
-    message.value = `捐赠订单创建成功，请使用订单 ${order.id} 的模拟支付按钮完成回调`;
+    message.value = `捐赠订单创建成功，请在订单 ${order.id} 中完成支付结果确认`;
     form.donorName = "";
     form.amount = 10;
     form.message = "";
@@ -203,17 +202,17 @@ async function createOrder() {
   }
 }
 
-async function simulatePayment(order, status) {
+async function confirmPayment(order, status) {
   message.value = "";
   ok.value = false;
   processingId.value = order.id;
   const noteMap = {
-    PAID: "演示支付成功，生成正式捐赠记录",
-    FAILED: "演示支付失败，不生成捐赠记录",
-    CANCELLED: "演示取消支付，不生成捐赠记录"
+    PAID: "支付成功，生成捐赠记录",
+    FAILED: "支付失败，不生成捐赠记录",
+    CANCELLED: "支付已取消，不生成捐赠记录"
   };
   try {
-    await donationApi.simulatePayment(order.id, {
+    await donationApi.confirmPayment(order.id, {
       status,
       callbackToken: order.callbackToken,
       note: noteMap[status]

@@ -6,7 +6,7 @@
 @recordId = 1
 @correctionId = 1
 @orderId = 1
-@callbackToken =
+@confirmToken =
 @externalTaskId = 1
 
 ### 0) 健康检查
@@ -107,7 +107,7 @@ Content-Type: application/json
 }
 
 ### 13) 创建捐赠订单
-# 将响应 data.id 复制到 @orderId，将 data.callbackToken 复制到 @callbackToken。
+# 将响应 data.id 复制到 @orderId，将 data.callbackToken 复制到 @confirmToken。
 POST {{baseUrl}}/api/donations/orders
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -118,15 +118,15 @@ Content-Type: application/json
   "message": "支持公益活动"
 }
 
-### 14) 模拟支付回调
-POST {{baseUrl}}/api/donations/orders/{{orderId}}/simulate-payment
+### 14) 确认支付结果
+POST {{baseUrl}}/api/donations/orders/{{orderId}}/confirm-payment
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
   "status": "PAID",
-  "callbackToken": "{{callbackToken}}",
-  "note": "课程演示模拟支付成功"
+  "callbackToken": "{{confirmToken}}",
+  "note": "支付成功，生成捐赠记录"
 }
 
 ### 15) 查询我的通知

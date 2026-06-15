@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 
 /**
  * 接口层：实现 SRS FR-04 服务记录沉淀，以及 FR-05 积分激励的基础规则。
- * 当前以“登记服务记录后发放积分”的课程版规则替代更复杂的评优算法。
+ * 当前以“登记服务记录后发放积分”的规则替代更复杂的评优算法。
  */
 @RestController
 @RequestMapping("/api/service-records")

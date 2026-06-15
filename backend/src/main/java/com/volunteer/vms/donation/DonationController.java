@@ -23,7 +23,7 @@ import java.util.Map;
 
 /**
  * 接口层：实现 SRS FR-07 捐赠与支持管理。
- * v3 按接口文档 4.3 将捐赠流程拆分为“创建订单、模拟支付回调、成功后生成捐赠记录”。
+ * 捐赠流程拆分为“创建订单、支付结果确认、成功后生成捐赠记录”。
  */
 @RestController
 @RequestMapping("/api/donations")
@@ -55,7 +55,7 @@ public class DonationController {
         order.setMessage(createRequest.message());
         order.setStatus(DonationOrderStatus.PAID);
         order.setCallbackToken(paymentGateway.createCallbackToken());
-        order.setPaymentNote("兼容接口提交，视为已完成支付，网关=" + paymentGateway.gatewayName());
+        order.setPaymentNote("直接提交捐赠，支付结果已确认");
         order.setPaidAt(LocalDateTime.now());
         DonationOrder savedOrder = orderRepository.save(order);
         Donation saved = createDonationFromOrder(savedOrder);
@@ -92,11 +92,18 @@ public class DonationController {
         return ApiResponse.success(DonationOrderResponse.from(saved));
     }
 
-    @PostMapping("/orders/{orderId}/simulate-payment")
+    @PostMapping("/orders/{orderId}/confirm-payment")
     @Transactional
-    public ApiResponse<DonationOrderResponse> simulatePayment(HttpServletRequest request,
-                                                              @PathVariable Long orderId,
-                                                              @Valid @RequestBody SimulatePaymentRequest paymentRequest) {
+    public ApiResponse<DonationOrderResponse> confirmPayment(HttpServletRequest request,
+                                                             @PathVariable Long orderId,
+                                                             @Valid @RequestBody ConfirmPaymentRequest paymentRequest) {
+        return handlePaymentConfirmation(request, orderId, paymentRequest);
+    }
+
+
+    private ApiResponse<DonationOrderResponse> handlePaymentConfirmation(HttpServletRequest request,
+                                                                         Long orderId,
+                                                                         ConfirmPaymentRequest paymentRequest) {
         User currentUser = AuthUtils.currentUser(request);
         DonationOrder order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BizException(HttpStatus.NOT_FOUND, "捐赠订单不存在"));
@@ -104,13 +111,13 @@ public class DonationController {
             throw new BizException(HttpStatus.FORBIDDEN, "只能处理自己的捐赠订单");
         }
         if (order.getStatus() != DonationOrderStatus.PENDING) {
-            throw new BizException(HttpStatus.BAD_REQUEST, "只有待支付订单才能模拟支付");
+            throw new BizException(HttpStatus.BAD_REQUEST, "只有待支付订单才能确认支付结果");
         }
         if (paymentRequest.status() == DonationOrderStatus.PENDING || paymentRequest.status() == DonationOrderStatus.CLOSED) {
-            throw new BizException(HttpStatus.BAD_REQUEST, "模拟支付状态只能为 PAID、FAILED 或 CANCELLED");
+            throw new BizException(HttpStatus.BAD_REQUEST, "支付结果状态只能为 PAID、FAILED 或 CANCELLED");
         }
         if (!paymentGateway.verifyCallback(order, paymentRequest.callbackToken())) {
-            throw new BizException(HttpStatus.BAD_REQUEST, "支付回调校验失败");
+            throw new BizException(HttpStatus.BAD_REQUEST, "支付确认校验失败");
         }
         order.setStatus(paymentRequest.status());
         order.setPaymentNote(paymentRequest.note());
@@ -122,10 +129,10 @@ public class DonationController {
         auditLogService.log(
                 request,
                 currentUser,
-                "DONATION_PAYMENT_SIMULATED",
+                "DONATION_PAYMENT_CONFIRMED",
                 "DONATION_ORDER",
                 orderId,
-                "模拟支付状态=" + paymentRequest.status()
+                "支付结果状态=" + paymentRequest.status()
         );
         return ApiResponse.success(DonationOrderResponse.from(saved));
     }
@@ -190,10 +197,10 @@ public class DonationController {
     ) {
     }
 
-    public record SimulatePaymentRequest(
+    public record ConfirmPaymentRequest(
             @NotNull(message = "支付状态不能为空")
             DonationOrderStatus status,
-            @NotBlank(message = "回调令牌不能为空")
+            @NotBlank(message = "支付确认令牌不能为空")
             String callbackToken,
             @Size(max = 500, message = "支付说明最多500字")
             String note

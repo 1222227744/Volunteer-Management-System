@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * 接口层：补齐 SRS FR-05 的课程版活动评价能力。
+ * 接口层：补齐 SRS FR-05 的活动评价能力。
  * 评价前置条件为活动已形成正式服务记录，避免与未参与用户混淆。
  */
 @RestController
