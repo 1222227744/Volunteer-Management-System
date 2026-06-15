@@ -15,11 +15,11 @@
 
 本仓库当前以以下源文档作为最新需求与设计基线：
 
-- `软件需求规格说明书_2026-v1.2 / v1.3`
+- `软件需求规格说明书_2026-v1.3.docx`
 - `概要设计v1.docx/.pdf`
 - `志愿者管理系统_可行性分析报告(V2.0).docx/.pdf`
 
-仓库中的 `README.md`、`docs/接口文档.md`、`docs/需求实现对应矩阵.md` 和后续新增的迭代计划文档，负责把这些源文档与当前代码实现同步起来；已收工的需求规格、概要设计和系统设计文档保持归档状态，不再随每次代码调整反复改写。
+仓库中的 `README.md`、`docs/接口文档.md`、`docs/需求实现对应矩阵.md`、`docs/运维部署手册.md` 和迭代计划文档，负责把这些源文档与当前代码实现同步起来；已收工的需求规格、概要设计等 `docx/pdf` 文档和系统设计说明书保持归档状态，不再随每次代码调整反复改写。
 
 当前代码库对应第四次迭代阶段的 v4 系统：
 
@@ -313,7 +313,7 @@ npm run preview
 
 仓库中已经提供示例配置：
 
-- [deploy/nginx.example.conf](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/deploy/nginx.example.conf)
+- [deploy/nginx.example.conf](./deploy/nginx.example.conf)
 
 思路是：
 
@@ -324,7 +324,7 @@ npm run preview
 
 仓库中提供后端服务守护进程示例：
 
-- [deploy/volunteer-service-backend.service.example](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/deploy/volunteer-service-backend.service.example)
+- [deploy/volunteer-service-backend.service.example](./deploy/volunteer-service-backend.service.example)
 
 使用时需根据服务器实际路径、运行用户和 Jar 文件名调整 `WorkingDirectory`、`EnvironmentFile` 和 `ExecStart`。
 
@@ -360,7 +360,7 @@ npm run build
 
 示例文件：
 
-- [backend/.env.example](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/backend/.env.example)
+- [backend/.env.example](./backend/.env.example)
 
 主要配置项：
 
@@ -390,7 +390,7 @@ npm run build
 
 示例文件：
 
-- [frontend/.env.example](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/frontend/.env.example)
+- [frontend/.env.example](./frontend/.env.example)
 
 主要配置项：
 
@@ -417,10 +417,10 @@ npm run build
 
 ### 10.1 演示数据与接口脚本
 
-- 演示数据脚本：[backend/src/main/resources/sql/demo-data.sql](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/backend/src/main/resources/sql/demo-data.sql)
-- 接口演示脚本：[backend/api-demo.http](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/backend/api-demo.http)
-- Windows 配置脚本：[scripts/setup-windows.ps1](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/scripts/setup-windows.ps1)
-- Ubuntu 配置脚本：[scripts/setup-ubuntu.sh](d:/Documents/WorkSpace/10-Projects/Course/Big-Assignments/softwareEngineer/scripts/setup-ubuntu.sh)
+- 演示数据脚本：[backend/src/main/resources/sql/demo-data.sql](./backend/src/main/resources/sql/demo-data.sql)
+- 接口演示脚本：[backend/api-demo.http](./backend/api-demo.http)
+- Windows 配置脚本：[scripts/setup-windows.ps1](./scripts/setup-windows.ps1)
+- Ubuntu 配置脚本：[scripts/setup-ubuntu.sh](./scripts/setup-ubuntu.sh)
 
 ## 11. 常见问题
 
