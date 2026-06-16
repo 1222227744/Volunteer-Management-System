@@ -24,6 +24,8 @@ public class StartupDataInitializer implements CommandLineRunner {
     private static final String DEFAULT_ORGANIZER_DISPLAY_NAME = "组织方账号";
     private static final String LEGACY_MOJIBAKE_ADMIN_DISPLAY_NAME = mojibake(DEFAULT_ADMIN_DISPLAY_NAME);
     private static final String LEGACY_MOJIBAKE_ORGANIZER_DISPLAY_NAME = mojibake(DEFAULT_ORGANIZER_DISPLAY_NAME);
+    private static final String LEGACY_GBK_MOJIBAKE_ADMIN_DISPLAY_NAME = gbkMojibake(DEFAULT_ADMIN_DISPLAY_NAME);
+    private static final String LEGACY_GBK_MOJIBAKE_ORGANIZER_DISPLAY_NAME = gbkMojibake(DEFAULT_ORGANIZER_DISPLAY_NAME);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -42,25 +44,25 @@ public class StartupDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        repairUserDisplayName(bootstrapProperties.adminUsername(), bootstrapProperties.adminDisplayName(), Role.ADMIN);
-        repairUserDisplayName(bootstrapProperties.organizerUsername(), bootstrapProperties.organizerDisplayName(), Role.ORGANIZER);
+        repairUserDisplayName(bootstrapProperties.adminUsername(), safeDisplayName(bootstrapProperties.adminDisplayName(), DEFAULT_ADMIN_DISPLAY_NAME), Role.ADMIN);
+        repairUserDisplayName(bootstrapProperties.organizerUsername(), safeDisplayName(bootstrapProperties.organizerDisplayName(), DEFAULT_ORGANIZER_DISPLAY_NAME), Role.ORGANIZER);
         repairUserDisplayName("admin@example.com", DEFAULT_ADMIN_DISPLAY_NAME, Role.ADMIN);
         repairUserDisplayName("organizer@example.com", DEFAULT_ORGANIZER_DISPLAY_NAME, Role.ORGANIZER);
         repairNameSnapshots();
         if (!bootstrapProperties.enabled()) {
-            log.info("跳过默认账号初始化，vms.bootstrap.enabled=false");
+            log.info("Skip bootstrap account creation because vms.bootstrap.enabled=false");
             return;
         }
         ensureUser(
                 bootstrapProperties.adminUsername(),
                 bootstrapProperties.adminPassword(),
-                bootstrapProperties.adminDisplayName(),
+                safeDisplayName(bootstrapProperties.adminDisplayName(), DEFAULT_ADMIN_DISPLAY_NAME),
                 Role.ADMIN
         );
         ensureUser(
                 bootstrapProperties.organizerUsername(),
                 bootstrapProperties.organizerPassword(),
-                bootstrapProperties.organizerDisplayName(),
+                safeDisplayName(bootstrapProperties.organizerDisplayName(), DEFAULT_ORGANIZER_DISPLAY_NAME),
                 Role.ORGANIZER
         );
     }
@@ -77,7 +79,7 @@ public class StartupDataInitializer implements CommandLineRunner {
         user.setDisplayName(displayName);
         user.setRole(role);
         userRepository.save(user);
-        log.info("初始化账号成功: username={}, role={}", username, role);
+        log.info("Bootstrap account created: username={}, role={}", username, role);
     }
 
     private void repairUserDisplayName(String username, String displayName, Role role) {
@@ -91,7 +93,7 @@ public class StartupDataInitializer implements CommandLineRunner {
         if (needsDisplayNameRepair(existing.getDisplayName(), role)) {
             existing.setDisplayName(displayName);
             userRepository.save(existing);
-            log.info("已修正默认账号昵称: username={}, role={}", username, role);
+            log.info("Bootstrap display name repaired: username={}, role={}", username, role);
         }
     }
 
@@ -123,8 +125,20 @@ public class StartupDataInitializer implements CommandLineRunner {
                 LEGACY_MOJIBAKE_ADMIN_DISPLAY_NAME,
                 LEGACY_MOJIBAKE_ORGANIZER_DISPLAY_NAME
         );
+        updated += jdbcTemplate.update(
+                "UPDATE " + tableName +
+                        " SET " + columnName + " = CASE " + columnName +
+                        " WHEN ? THEN ? WHEN ? THEN ? ELSE " + columnName + " END" +
+                        " WHERE " + columnName + " IN (?, ?)",
+                LEGACY_GBK_MOJIBAKE_ADMIN_DISPLAY_NAME,
+                DEFAULT_ADMIN_DISPLAY_NAME,
+                LEGACY_GBK_MOJIBAKE_ORGANIZER_DISPLAY_NAME,
+                DEFAULT_ORGANIZER_DISPLAY_NAME,
+                LEGACY_GBK_MOJIBAKE_ADMIN_DISPLAY_NAME,
+                LEGACY_GBK_MOJIBAKE_ORGANIZER_DISPLAY_NAME
+        );
         if (updated > 0) {
-            log.info("已修正历史姓名快照: table={}, column={}, rows={}", tableName, columnName, updated);
+            log.info("Historical name snapshot repaired: table={}, column={}, rows={}", tableName, columnName, updated);
         }
     }
 
@@ -136,6 +150,12 @@ public class StartupDataInitializer implements CommandLineRunner {
             return true;
         }
         if (role == Role.ORGANIZER && LEGACY_MOJIBAKE_ORGANIZER_DISPLAY_NAME.equals(displayName)) {
+            return true;
+        }
+        if (role == Role.ADMIN && LEGACY_GBK_MOJIBAKE_ADMIN_DISPLAY_NAME.equals(displayName)) {
+            return true;
+        }
+        if (role == Role.ORGANIZER && LEGACY_GBK_MOJIBAKE_ORGANIZER_DISPLAY_NAME.equals(displayName)) {
             return true;
         }
         return false;
@@ -162,6 +182,23 @@ public class StartupDataInitializer implements CommandLineRunner {
 
     private static String mojibake(String value) {
         return new String(value.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
+    }
+
+    private static String gbkMojibake(String value) {
+        return new String(value.getBytes(StandardCharsets.UTF_8), java.nio.charset.Charset.forName("GBK"));
+    }
+
+    private static String safeDisplayName(String configuredValue, String fallbackValue) {
+        if (configuredValue == null || configuredValue.isBlank()) {
+            return fallbackValue;
+        }
+        if (configuredValue.equals(LEGACY_MOJIBAKE_ADMIN_DISPLAY_NAME) || configuredValue.equals(LEGACY_MOJIBAKE_ORGANIZER_DISPLAY_NAME)) {
+            return fallbackValue;
+        }
+        if (configuredValue.equals(LEGACY_GBK_MOJIBAKE_ADMIN_DISPLAY_NAME) || configuredValue.equals(LEGACY_GBK_MOJIBAKE_ORGANIZER_DISPLAY_NAME)) {
+            return fallbackValue;
+        }
+        return configuredValue;
     }
 
     @ConfigurationProperties(prefix = "vms.bootstrap")

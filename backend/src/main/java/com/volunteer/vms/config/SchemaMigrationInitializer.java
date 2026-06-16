@@ -303,11 +303,11 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             return;
         }
         if (tableExists("users") || tableExists("activities") || tableExists("activity_registrations")) {
-            log.warn("检测到数据库基础表不完整，未自动执行 init.sql；请人工核对当前库结构后再启动");
+            log.warn("Base schema is incomplete, skip automatic init.sql execution. Please verify the database schema manually before restarting.");
             return;
         }
         executeScript("sql/init.sql");
-        log.info("检测到空数据库，已执行 sql/init.sql 初始化基础表结构");
+        log.info("Empty database detected, sql/init.sql has initialized the base schema.");
     }
 
     private void applyMigration(MigrationDefinition migration) {
@@ -319,13 +319,13 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case EXECUTE -> {
                 executeScript(migration.scriptPath());
                 recordMigration(migration, "EXECUTED", decision.reason());
-                log.info("已执行数据库迁移 {} - {}", migration.version(), migration.description());
+                log.info("Database migration executed: version={}, script={}", migration.version(), migration.scriptPath());
             }
             case BASELINE -> {
                 recordMigration(migration, "BASELINED", decision.reason());
-                log.info("迁移 {} 已满足目标结构，按基线登记: {}", migration.version(), decision.reason());
+                log.info("Database migration baselined: version={}, reason={}", migration.version(), decision.reason());
             }
-            case BLOCKED -> log.warn("迁移 {} 暂未执行: {}", migration.version(), decision.reason());
+            case BLOCKED -> log.warn("Database migration blocked: version={}, reason={}", migration.version(), decision.reason());
         }
     }
 
@@ -380,7 +380,7 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
             case "V4_001" -> decideTableMigration("service_record_corrections");
             case "V4_002" -> decideServiceRecordCorrectionIndexMigration();
             case "V4_003" -> decideMojibakeNameRepairMigration();
-            default -> new MigrationDecision(MigrationAction.EXECUTE, "未提供兼容判定，按脚本执行");
+            default -> new MigrationDecision(MigrationAction.EXECUTE, "No compatibility decision configured, execute script.");
         };
     }
 
@@ -416,7 +416,7 @@ public class SchemaMigrationInitializer implements CommandLineRunner {
         if (tableExists("donations")) {
             badCount += countTextMatches("donations", "donor_name", adminMojibake, organizerMojibake);
         }
-        return badCount > 0 ? execute("检测到历史编码错误昵称") : baseline("未检测到历史编码错误昵称");
+        return badCount > 0 ? execute("Mojibake display names detected.") : baseline("No mojibake display names detected.");
     }
 
     private MigrationDecision decideCheckOutColumnMigration() {
