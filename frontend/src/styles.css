@@ -826,8 +826,8 @@ th {
 }
 
 .switch-control {
-  width: 56px;
-  height: 28px;
+  width: 44px;
+  height: 24px;
   border: 1px solid #c8ced8;
   border-radius: 999px;
   padding: 2px;
@@ -840,8 +840,8 @@ th {
 }
 
 .switch-control span {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.22);
@@ -855,7 +855,7 @@ th {
 }
 
 .switch-control.active span {
-  transform: translateX(28px);
+  transform: translateX(20px);
 }
 
 .switch-control:disabled {
