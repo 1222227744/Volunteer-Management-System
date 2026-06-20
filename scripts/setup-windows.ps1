@@ -95,7 +95,7 @@ function Invoke-MysqlScript {
 Copy-IfMissing -Source (Join-Path $RootDir "backend\.env.example") -Target $BackendEnv
 Copy-IfMissing -Source (Join-Path $RootDir "frontend\.env.example") -Target $FrontendEnv
 
-Set-EnvValue -File $BackendEnv -Key "SPRING_DATASOURCE_URL" -Value "jdbc:mysql://${DbHost}:${DbPort}/${DbName}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8mb4"
+Set-EnvValue -File $BackendEnv -Key "SPRING_DATASOURCE_URL" -Value "jdbc:mysql://${DbHost}:${DbPort}/${DbName}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8"
 Set-EnvValue -File $BackendEnv -Key "SPRING_DATASOURCE_USERNAME" -Value $DbUser
 Set-EnvValue -File $BackendEnv -Key "SPRING_DATASOURCE_PASSWORD" -Value $DbPassword
 Set-EnvValue -File $BackendEnv -Key "SPRING_JPA_HIBERNATE_DDL_AUTO" -Value "none"

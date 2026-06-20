@@ -89,7 +89,7 @@ FRONTEND_ENV="${ROOT_DIR}/frontend/.env"
 copy_if_missing "${ROOT_DIR}/backend/.env.example" "${BACKEND_ENV}"
 copy_if_missing "${ROOT_DIR}/frontend/.env.example" "${FRONTEND_ENV}"
 
-replace_or_append "${BACKEND_ENV}" "SPRING_DATASOURCE_URL" "jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8mb4"
+replace_or_append "${BACKEND_ENV}" "SPRING_DATASOURCE_URL" "jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8"
 replace_or_append "${BACKEND_ENV}" "SPRING_DATASOURCE_USERNAME" "${DB_USER}"
 replace_or_append "${BACKEND_ENV}" "SPRING_DATASOURCE_PASSWORD" "${DB_PASSWORD}"
 replace_or_append "${BACKEND_ENV}" "SPRING_JPA_HIBERNATE_DDL_AUTO" "none"

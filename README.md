@@ -19,7 +19,7 @@
 - `概要设计v1.docx/.pdf`
 - `志愿者管理系统_可行性分析报告(V2.0).docx/.pdf`
 
-仓库中的 `README.md`、`docs/接口文档.md`、`docs/需求实现对应矩阵.md`、`docs/运维部署手册.md` 和迭代计划文档，负责把这些源文档与当前代码实现同步起来；已收工的需求规格、概要设计等 `docx/pdf` 文档和系统设计说明书保持归档状态，不再随每次代码调整反复改写。
+仓库中的 `README.md`、`docs/接口文档.md`、`docs/需求实现对应矩阵.md`、`docs/部署文档.md`、`docs/运维部署手册.md` 和迭代计划文档，负责把这些源文档与当前代码实现同步起来；已收工的需求规格、概要设计等 `docx/pdf` 文档和系统设计说明书保持归档状态，不再随每次代码调整反复改写。
 
 当前代码库对应第四次迭代阶段的 v4 系统：
 
@@ -82,7 +82,8 @@ softwareEngineer/
     setup-windows.ps1             Windows 一键生成真实运行配置
   docs/
     接口文档.md                    当前代码对应的接口与外部服务边界说明
-    运维部署手册.md                环境配置、部署发布和日常运维说明
+    部署文档.md                    从空环境到可验收运行的完整部署说明
+    运维部署手册.md                日常运维、备份恢复和故障处理说明
     测试流程引导.md                提交前功能、接口和构建验证顺序
     视频演示流程.md                3 到 4 分钟演示流程
     需求实现对应矩阵.md            需求、设计分层与代码实现对应关系
@@ -125,7 +126,7 @@ Copy-Item backend/.env.example backend/.env
 然后编辑 `backend/.env`，至少改这几个值：
 
 ```env
-SPRING_DATASOURCE_URL=jdbc:mysql://127.0.0.1:3306/volunteer_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8mb4
+SPRING_DATASOURCE_URL=jdbc:mysql://127.0.0.1:3306/volunteer_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=UTF-8
 SPRING_DATASOURCE_USERNAME=root
 SPRING_DATASOURCE_PASSWORD=你的MySQL密码
 ```
@@ -459,7 +460,7 @@ npm run build
 ## 12. 建议的下一步
 
 当前仓库已经完成第四次迭代范围，建议优先按 [第四次迭代范围与目标.md](./docs/第四次迭代范围与目标.md)、[需求实现对应矩阵.md](./docs/需求实现对应矩阵.md) 和 [测试流程引导.md](./docs/测试流程引导.md) 做验收走查。
-部署和日常运维按 [运维部署手册.md](./docs/运维部署手册.md) 执行。
+从零部署按 [部署文档.md](./docs/部署文档.md) 执行；部署后的日常运维按 [运维部署手册.md](./docs/运维部署手册.md) 执行。
 
 后续优先事项建议如下：
 
